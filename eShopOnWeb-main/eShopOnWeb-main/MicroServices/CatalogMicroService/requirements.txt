@@ -1,5 +1,7 @@
-fastapi==0.115.0
-uvicorn[standard]==0.24.0
-pydantic==2.6.0
-python-dotenv==1.0.0
-pika
+fastapi # Web framework
+uvicorn[standard] # ASGI server
+pydantic # For data validation and settings management
+python-dotenv # For environment variable management
+sqlmodel # ORM
+asyncpg # PostgreSQL driver
+alembic # For database migrations

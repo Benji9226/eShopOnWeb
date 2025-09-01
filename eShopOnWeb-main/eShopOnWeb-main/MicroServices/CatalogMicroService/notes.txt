@@ -1,0 +1,7 @@
+-----------
+Alembic migrations:
+
+alembic revision --autogenerate -m "added new column"
+alembic upgrade head
+-----------
+
