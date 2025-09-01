@@ -1,7 +1,7 @@
 from ..models.catalog import Catalog
 
 class CatalogService:
-    def process_order(self, catalog: Catalog) -> dict:
+    def process_catalog(self, catalog: Catalog) -> dict:
         return {
             "id": catalog.id,
             "product": catalog.product,
