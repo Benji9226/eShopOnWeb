@@ -1,15 +1,15 @@
-from sqlmodel import Field, Relationship
+from sqlmodel import Field, Relationship, SQLModel
+from sqlalchemy import DECIMAL, Column
 from typing import Optional
 from datetime import datetime
-from app.models.base_entity import BaseEntity
 from app.models.catalog_type import CatalogType
 from app.models.catalog_brand import CatalogBrand
-
+from app.models.base_entity import BaseEntity
 
 class CatalogItem(BaseEntity, table=True):
-    name: str
+    name: str = Field(max_length=50, nullable=False)
     description: Optional[str] = None
-    price: float
+    price: float = Field(sa_column=Column(DECIMAL(18, 2), nullable=False))
     picture_uri: Optional[str] = None
 
     catalog_type_id: int = Field(foreign_key="catalogtype.id")

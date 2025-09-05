@@ -1,9 +1,13 @@
+# database.py
+
 from sqlmodel import SQLModel
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 import asyncio
 from dotenv import load_dotenv
 import os
+from app.seeder import seed_db
+
 load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -20,7 +24,12 @@ async def get_db():
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
+    
     print("Database initialized.")
+
+    async with async_session() as session:
+        await seed_db(session)
+    print("Database seeded.")
 
 if __name__ == "__main__":
     asyncio.run(init_db())

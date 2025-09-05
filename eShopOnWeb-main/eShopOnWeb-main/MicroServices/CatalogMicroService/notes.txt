@@ -1,4 +1,43 @@
 -----------
+-----------
+initial setup for new user:
+
+Inside the project folder
+
+1. create python venv:
+    python -m venv venv
+
+2. activate venv:
+    venv\Scripts\activate
+
+3. install dependencies in venv:
+    pip install -r requirements.txt
+
+4. set up .env file with:
+    API_PORT=8000
+    DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/catalog_db
+        - DATABASE_URL will be according to the local setup, i use a docker container. this should probably get started in this app somehow with a docker compose or something.
+
+5. update migrations:
+    alembic upgrade head
+
+6. start app:
+    uvicorn main:app --reload
+-----------
+
+-----------
+start app:
+
+uvicorn main:app --reload
+-----------
+
+-----------
+install dependencies:
+
+pip install -r requirements.txt
+-----------
+
+-----------
 Alembic migrations:
 
 alembic revision --autogenerate -m "added new column"

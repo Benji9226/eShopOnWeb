@@ -28,3 +28,14 @@ class CatalogItemRepository:
         if catalog_item:
             await self.session.delete(catalog_item)
             await self.session.commit()
+
+    async def update(self, item_id: int, updated_item: CatalogItem) -> CatalogItem | None:
+        catalog_item = await self.get_by_id(item_id)
+        if catalog_item:
+            catalog_item.name = updated_item.name
+            catalog_item.description = updated_item.description
+            catalog_item.price = updated_item.price
+            
+            await self.session.commit()
+            await self.session.refresh(catalog_item)
+        return None
