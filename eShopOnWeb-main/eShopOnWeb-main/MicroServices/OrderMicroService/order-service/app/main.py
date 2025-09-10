@@ -5,7 +5,6 @@ import asyncio
 app = FastAPI(title="Order Service")
 app.include_router(orders.router)
 
-# create tables on startup for demo convenience (not for prod)
 from app.db import engine
 from app import models
 
