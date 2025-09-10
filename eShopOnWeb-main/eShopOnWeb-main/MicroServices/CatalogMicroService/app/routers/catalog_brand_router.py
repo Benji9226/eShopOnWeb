@@ -14,3 +14,5 @@ async def read_brands(db: AsyncSession = Depends(get_db)):
     return ListCatalogBrandsResponse(
         catalog_brands=[CatalogBrandDTO.model_validate(item) for item in items]
     )
+
+#dsfgsdfg
