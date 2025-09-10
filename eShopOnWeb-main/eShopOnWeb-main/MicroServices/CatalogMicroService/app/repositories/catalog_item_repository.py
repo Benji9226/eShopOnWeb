@@ -1,7 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 from app.models.catalog_item import CatalogItem
-from app.specifications.catalog_specifications import catalog_filter_specification, catalog_filter_paginated_specification
 from sqlalchemy import select, func
 
 
@@ -13,15 +11,35 @@ class CatalogItemRepository:
     async def get_by_id(self, id: int) -> CatalogItem | None:
         return await self.db.get(CatalogItem, id)
 
-    async def list_paged(self, skip: int, take: int, brand_id: int | None = None, type_id: int | None = None):
-        stmt = catalog_filter_paginated_specification(skip=skip, take=take, brand_id=brand_id, type_id=type_id)
-        result = await self.db.execute(stmt)
+    async def list_catalog_items(
+        self,
+        db: AsyncSession,
+        skip: int = 0,
+        take: int = 10,
+        brand_id: int | None = None,
+        type_id: int | None = None
+    ) -> list[CatalogItem]:
+        stmt = select(CatalogItem)
+        if brand_id is not None:
+            stmt = stmt.where(CatalogItem.catalog_brand_id == brand_id)
+        if type_id is not None:
+            stmt = stmt.where(CatalogItem.catalog_type_id == type_id)
+        stmt = stmt.offset(skip).limit(take)
+        result = await db.execute(stmt)
         return result.scalars().all()
 
-    async def count(self, brand_id: int | None = None, type_id: int | None = None):
-        stmt = catalog_filter_specification(brand_id=brand_id, type_id=type_id)
-        count_stmt = select(func.count()).select_from(stmt.subquery())
-        result = await self.db.execute(count_stmt)
+    async def count_catalog_items(
+        self,
+        db: AsyncSession,
+        brand_id: int | None = None,
+        type_id: int | None = None
+    ) -> int:
+        stmt = select(func.count()).select_from(CatalogItem)
+        if brand_id is not None:
+            stmt = stmt.where(CatalogItem.catalog_brand_id == brand_id)
+        if type_id is not None:
+            stmt = stmt.where(CatalogItem.catalog_type_id == type_id)
+        result = await db.execute(stmt)
         return result.scalar_one()
 
     async def add(self, item: CatalogItem) -> CatalogItem:
