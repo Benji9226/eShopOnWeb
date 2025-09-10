@@ -28,7 +28,7 @@ builder.Logging.AddConsole();
 // Register HttpClient for IOrderServiceClient
 builder.Services.AddHttpClient<IOrderServiceClient, OrderServiceClient>(client =>
 {
-    client.BaseAddress = new Uri("http://order:8000"); // Docker service URL
+    client.BaseAddress = new Uri("http://localhost:8000"); // Docker service URL
 });
 
 // Register OrderService

@@ -1,4 +1,5 @@
 version: '3.8'
+
 services:
   db:
     image: postgres:15
@@ -26,7 +27,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://postgres:password@db:5432/orders
       RABBITMQ_URL: amqp://guest:guest@rabbitmq/
     ports:
-      - "8000:8000"
+      - "8000:8000"  # Expose to host so Web app can reach it
     depends_on:
       db:
         condition: service_healthy
