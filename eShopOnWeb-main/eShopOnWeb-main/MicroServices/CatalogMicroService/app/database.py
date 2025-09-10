@@ -15,7 +15,11 @@ if not DATABASE_URL:
     raise ValueError("DATABASE_URL is not set in .env")
 
 engine = create_async_engine(DATABASE_URL, echo=True)
-async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+async_session = sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False
+)
 
 async def get_db():
     async with async_session() as session:

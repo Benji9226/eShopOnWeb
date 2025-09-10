@@ -2,19 +2,21 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.repositories.catalog_type_repository import CatalogTypeRepository
-from app.models.catalog_type import CatalogType
+from app.dto.catalog_type_dto import CatalogTypeDTO, ListCatalogTypesResponse
 
 router = APIRouter(prefix="/types", tags=["catalog-types"])
 
-
-@router.get("/")
+@router.get("/", response_model=ListCatalogTypesResponse)
 async def read_types(db: AsyncSession = Depends(get_db)):
     repo = CatalogTypeRepository(db)
-    return await repo.list_all()
+    items = await repo.list_all()
+    return ListCatalogTypesResponse(
+        catalog_types=[CatalogTypeDTO.model_validate(item) for item in items]
+    )
 
-
-@router.post("/")
-async def add_type(type_name: str, db: AsyncSession = Depends(get_db)):
+@router.post("/", response_model=CatalogTypeDTO)
+async def add_type(type_dto: CatalogTypeDTO, db: AsyncSession = Depends(get_db)):
     repo = CatalogTypeRepository(db)
-    catalog_type = CatalogType(type=type_name)
-    return await repo.add(catalog_type)
+    catalog_type = type_dto.to_model()  # convert DTO -> SQLModel
+    added_type = await repo.add(catalog_type)
+    return CatalogTypeDTO.model_validate(added_type)  # convert back to DTO

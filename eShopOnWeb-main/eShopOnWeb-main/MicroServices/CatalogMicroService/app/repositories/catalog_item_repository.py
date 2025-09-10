@@ -1,8 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.catalog_item import CatalogItem
-from sqlalchemy import select, func
-
-
+from sqlalchemy import func
+from sqlmodel import select
 
 class CatalogItemRepository:
     def __init__(self, db: AsyncSession):

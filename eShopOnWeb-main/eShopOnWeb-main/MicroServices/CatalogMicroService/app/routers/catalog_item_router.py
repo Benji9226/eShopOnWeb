@@ -31,10 +31,11 @@ async def list_catalog_items(
     repo = CatalogItemRepository(db)
 
     # count total items
-    total_items = await repo.count(catalogBrandId, catalogTypeId)
+    total_items = await repo.count_catalog_items(db, catalogBrandId, catalogTypeId)
 
     # fetch paginated items
-    items = await repo.list_paged(
+    items = await repo.list_catalog_items(
+        db,
         skip=pageIndex * pageSize,
         take=pageSize,
         brand_id=catalogBrandId,
