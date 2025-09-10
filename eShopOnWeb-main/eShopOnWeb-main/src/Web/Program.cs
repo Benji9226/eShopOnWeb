@@ -12,6 +12,9 @@ using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.eShopWeb;
 using Microsoft.eShopWeb.ApplicationCore.Interfaces;
+using Microsoft.eShopWeb.ApplicationCore.Services;
+using Microsoft.eShopWeb.ApplicationCore.Contracts.Orders;
+using Microsoft.eShopWeb.Infrastructure.Clients.Orders;
 using Microsoft.eShopWeb.Infrastructure.Data;
 using Microsoft.eShopWeb.Infrastructure.Identity;
 using Microsoft.eShopWeb.Web;
@@ -21,6 +24,15 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.AddConsole();
+
+// Register HttpClient for IOrderServiceClient
+builder.Services.AddHttpClient<IOrderServiceClient, OrderServiceClient>(client =>
+{
+    client.BaseAddress = new Uri("http://order:8000"); // Docker service URL
+});
+
+// Register OrderService
+builder.Services.AddScoped<IOrderService, OrderService>();
 
 if (builder.Environment.IsDevelopment() || builder.Environment.EnvironmentName == "Docker"){
     // Configure SQL Server (local)
@@ -61,6 +73,7 @@ builder.Services.AddScoped<ITokenClaimsService, IdentityTokenClaimService>();
 builder.Configuration.AddEnvironmentVariables();
 builder.Services.AddCoreServices(builder.Configuration);
 builder.Services.AddWebServices(builder.Configuration);
+
 
 // Add memory cache services
 builder.Services.AddMemoryCache();
