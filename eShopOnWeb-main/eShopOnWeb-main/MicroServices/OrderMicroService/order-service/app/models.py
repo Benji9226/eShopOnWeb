@@ -19,8 +19,12 @@ class Order(Base):
     status = Column(String(50), nullable=False, default='PENDING')
 
     items = relationship(
-        "OrderItem", back_populates="order", cascade="all, delete-orphan"
+        "OrderItem",
+        back_populates="order",
+        cascade="all, delete-orphan",
+        lazy="selectin"  # <--- async-friendly eager loading
     )
+
 
 class OrderItem(Base):
     __tablename__ = "orderitems"
