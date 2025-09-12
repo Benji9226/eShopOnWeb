@@ -1,9 +1,12 @@
-﻿using System.Text.Json;
-using Microsoft.eShopWeb.Web.DTOs;
-using Microsoft.eShopWeb.Web.ViewModels;
+﻿using System.Collections.Generic;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Threading.Tasks;
+using Microsoft.eShopWeb.PublicAPI.DTOs;
 using static System.Net.WebRequestMethods;
 
-namespace Microsoft.eShopWeb.Web.Clients;
+namespace Microsoft.eShopWeb.PublicApi.Clients;
 
 public interface ICatalogApiClient
 {

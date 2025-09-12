@@ -1,6 +1,10 @@
 ﻿using BlazorAdmin.Services;
+using BlazorShared;
 using BlazorShared.Interfaces;
+using System.Net.Http;
 using BlazorShared.Models;
+using Microsoft.eShopWeb.BlazorAdmin.Clients;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace BlazorAdmin;
