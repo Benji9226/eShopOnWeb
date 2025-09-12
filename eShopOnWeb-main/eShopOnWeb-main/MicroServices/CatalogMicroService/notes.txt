@@ -4,6 +4,8 @@ initial setup for new user:
 
 Inside the project folder
 
+0. delete venv folder if it exists! and exit venv environment
+
 1. create python venv:
     python -m venv venv
 
@@ -23,6 +25,33 @@ Inside the project folder
 
 6. start app:
     uvicorn main:app --reload
+-----------
+
+-----------
+docker compose:
+
+docker compose build
+
+docker compose up -d
+
+or for combined up:
+
+docker compose up --build -d
+
+docker compose logs -f catalog-api
+
+docker compose down
+-----------
+
+-----------
+postgres sql docker container:
+
+docker run --name postgres-catalog `
+  -e POSTGRES_USER=postgres `
+  -e POSTGRES_PASSWORD=postgres `
+  -e POSTGRES_DB=catalog_db `
+  -p 5432:5432 `
+  -d postgres:16
 -----------
 
 -----------

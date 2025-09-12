@@ -1,35 +1,94 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.repositories.catalog_item_repository import CatalogItemRepository
-from app.models.catalog_item import CatalogItem
+from app.dto.catalog_item_dto import CatalogItemDTO, ListPagedCatalogItemResponse
+from typing import Optional
 
-router = APIRouter(prefix="/items", tags=["catalog-items"])
+router = APIRouter(prefix="/catalog-items", tags=["catalog-items"])
+base_url="http://localhost:8000"  # adjust for your domain
 
-
-@router.get("/")
-async def read_items(db: AsyncSession = Depends(get_db)):
+# GET /catalog-items/{id}
+@router.get("/{catalog_item_id}", response_model=CatalogItemDTO)
+async def get_catalog_item(catalog_item_id: int, db: AsyncSession = Depends(get_db)):
     repo = CatalogItemRepository(db)
-    return await repo.list_all()
+    item = await repo.get_by_id(catalog_item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Catalog item not found")
+    dto = CatalogItemDTO.model_validate(item)
+    return dto
 
-
-@router.post("/")
-async def add_item(
-    name: str,
-    description: str,
-    price: float,
-    picture_uri: str,
-    catalog_type_id: int,
-    catalog_brand_id: int,
-    db: AsyncSession = Depends(get_db),
-):
+# GET /catalog-items?pageSize=&pageIndex=&catalogBrandId=&catalogTypeId=
+@router.get("/", response_model=ListPagedCatalogItemResponse)
+async def list_catalog_items(
+    pageSize: int = 10,
+    pageIndex: int = 0,
+    catalogBrandId: Optional[int] = None,
+    catalogTypeId: Optional[int] = None,
+    db: AsyncSession = Depends(get_db)
+    ):
+    
     repo = CatalogItemRepository(db)
-    item = CatalogItem(
-        name=name,
-        description=description,
-        price=price,
-        picture_uri=picture_uri,
-        catalog_type_id=catalog_type_id,
-        catalog_brand_id=catalog_brand_id,
+
+    # count total items
+    total_items = await repo.count_catalog_items(db, catalogBrandId, catalogTypeId)
+
+    # fetch paginated items
+    items = await repo.list_catalog_items(
+        db,
+        skip=pageIndex * pageSize,
+        take=pageSize,
+        brand_id=catalogBrandId,
+        type_id=catalogTypeId
     )
-    return await repo.add(item)
+
+    # map to DTOs and apply UriComposer
+    catalog_items = []
+    for i in items:
+        dto = CatalogItemDTO.model_validate(i)
+        catalog_items.append(dto)
+
+    # compute page count like C# code
+    page_count = (total_items + pageSize - 1) // pageSize if pageSize else (1 if total_items else 0)
+
+    response = ListPagedCatalogItemResponse(
+        catalog_items=catalog_items,
+        page_count=page_count
+    )
+
+    return response
+
+# POST /catalog-items
+@router.post("/", response_model=CatalogItemDTO)
+async def create_catalog_item(item: CatalogItemDTO, db: AsyncSession = Depends(get_db)):
+    repo = CatalogItemRepository(db)
+    catalog_item = item.to_model()
+    new_item = await repo.add(catalog_item)
+    dto = CatalogItemDTO.model_validate(new_item)
+    return dto
+
+# PUT /catalog-items
+@router.put("/", response_model=CatalogItemDTO)
+async def update_catalog_item(item: CatalogItemDTO, db: AsyncSession = Depends(get_db)):
+    repo = CatalogItemRepository(db)
+    existing = await repo.get_by_id(item.id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Catalog item not found")
+    existing.name = item.name
+    existing.description = item.description
+    existing.price = item.price
+    existing.catalog_brand_id = item.catalog_brand_id
+    existing.catalog_type_id = item.catalog_type_id
+    updated_item = await repo.update(existing)
+    dto = CatalogItemDTO.model_validate(updated_item)
+    return dto
+
+# DELETE /catalog-items/{id}
+@router.delete("/{catalog_item_id}")
+async def delete_catalog_item(catalog_item_id: int, db: AsyncSession = Depends(get_db)):
+    repo = CatalogItemRepository(db)
+    existing = await repo.get_by_id(catalog_item_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Catalog item not found")
+    await repo.delete(existing)
+    return {"detail": "Deleted"}

@@ -1,4 +1,6 @@
-version: '3.4'
+networks:
+  eshop-on-web-net:
+    external: true
 
 services:
   eshopwebmvc:
@@ -8,6 +10,8 @@ services:
       dockerfile: src/Web/Dockerfile
     depends_on:
       - "sqlserver"
+    networks:
+      - eshop-on-web-net
   eshoppublicapi:
     image: ${DOCKER_REGISTRY-}eshoppublicapi
     build:
@@ -15,6 +19,8 @@ services:
       dockerfile: src/PublicApi/Dockerfile
     depends_on:
       - "sqlserver"
+    networks:
+      - eshop-on-web-net
   sqlserver:
     image: mcr.microsoft.com/azure-sql-edge
     ports:
@@ -22,4 +28,6 @@ services:
     environment:
       - SA_PASSWORD=@someThingComplicated1234
       - ACCEPT_EULA=Y
+    networks:
+      - eshop-on-web-net
 

@@ -2,7 +2,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 from app.models.catalog_type import CatalogType
 
-
 class CatalogTypeRepository:
     def __init__(self, session: AsyncSession):
         self.session = session

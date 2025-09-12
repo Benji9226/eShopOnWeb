@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.eShopWeb.ApplicationCore.Entities;
 using Microsoft.eShopWeb.ApplicationCore.Interfaces;
 using Microsoft.eShopWeb.ApplicationCore.Specifications;
+using Microsoft.eShopWeb.Web.Clients;
 using Microsoft.eShopWeb.Web.ViewModels;
 using Microsoft.Extensions.Logging;
 
@@ -18,40 +19,28 @@ namespace Microsoft.eShopWeb.Web.Services;
 public class CatalogViewModelService : ICatalogViewModelService
 {
     private readonly ILogger<CatalogViewModelService> _logger;
-    private readonly IRepository<CatalogItem> _itemRepository;
-    private readonly IRepository<CatalogBrand> _brandRepository;
-    private readonly IRepository<CatalogType> _typeRepository;
     private readonly IUriComposer _uriComposer;
+    private readonly ICatalogApiClient _catalogApiClient;
 
     public CatalogViewModelService(
         ILoggerFactory loggerFactory,
-        IRepository<CatalogItem> itemRepository,
-        IRepository<CatalogBrand> brandRepository,
-        IRepository<CatalogType> typeRepository,
-        IUriComposer uriComposer)
+        IUriComposer uriComposer,
+        ICatalogApiClient catalogApiClient)
     {
         _logger = loggerFactory.CreateLogger<CatalogViewModelService>();
-        _itemRepository = itemRepository;
-        _brandRepository = brandRepository;
-        _typeRepository = typeRepository;
         _uriComposer = uriComposer;
+        _catalogApiClient = catalogApiClient;
+
     }
 
-    public async Task<CatalogIndexViewModel> GetCatalogItems(int pageIndex, int itemsPage, int? brandId, int? typeId)
+    public async Task<CatalogIndexViewModel> GetCatalogItems(
+        int pageIndex, int itemsPage, int? brandId = null, int? typeId = null)
     {
-        _logger.LogInformation("GetCatalogItems called.");
+        var result = await _catalogApiClient.GetCatalogItems(pageIndex, itemsPage, brandId, typeId);
 
-        var filterSpecification = new CatalogFilterSpecification(brandId, typeId);
-        var filterPaginatedSpecification =
-            new CatalogFilterPaginatedSpecification(itemsPage * pageIndex, itemsPage, brandId, typeId);
-
-        // the implementation below using ForEach and Count. We need a List.
-        var itemsOnPage = await _itemRepository.ListAsync(filterPaginatedSpecification);
-        var totalItems = await _itemRepository.CountAsync(filterSpecification);
-
-        var vm = new CatalogIndexViewModel()
+        var vm = new CatalogIndexViewModel
         {
-            CatalogItems = itemsOnPage.Select(i => new CatalogItemViewModel()
+            CatalogItems = result.CatalogItems.Select(i => new CatalogItemViewModel
             {
                 Id = i.Id,
                 Name = i.Name,
@@ -62,12 +51,12 @@ public class CatalogViewModelService : ICatalogViewModelService
             Types = (await GetTypes()).ToList(),
             BrandFilterApplied = brandId ?? 0,
             TypesFilterApplied = typeId ?? 0,
-            PaginationInfo = new PaginationInfoViewModel()
+            PaginationInfo = new PaginationInfoViewModel
             {
                 ActualPage = pageIndex,
-                ItemsPerPage = itemsOnPage.Count,
-                TotalItems = totalItems,
-                TotalPages = int.Parse(Math.Ceiling(((decimal)totalItems / itemsPage)).ToString())
+                ItemsPerPage = result.CatalogItems.Count,
+                TotalItems = result.PageCount * itemsPage,
+                TotalPages = result.PageCount
             }
         };
 
@@ -80,15 +69,15 @@ public class CatalogViewModelService : ICatalogViewModelService
     public async Task<IEnumerable<SelectListItem>> GetBrands()
     {
         _logger.LogInformation("GetBrands called.");
-        var brands = await _brandRepository.ListAsync();
+
+        var brands = await _catalogApiClient.GetBrandsAsync();
 
         var items = brands
-            .Select(brand => new SelectListItem() { Value = brand.Id.ToString(), Text = brand.Brand })
+            .Select(brand => new SelectListItem { Value = brand.Id?.ToString(), Text = brand.Name })
             .OrderBy(b => b.Text)
             .ToList();
 
-        var allItem = new SelectListItem() { Value = null, Text = "All", Selected = true };
-        items.Insert(0, allItem);
+        items.Insert(0, new SelectListItem { Value = null, Text = "All", Selected = true });
 
         return items;
     }
@@ -96,14 +85,16 @@ public class CatalogViewModelService : ICatalogViewModelService
     public async Task<IEnumerable<SelectListItem>> GetTypes()
     {
         _logger.LogInformation("GetTypes called.");
-        var types = await _typeRepository.ListAsync();
+
+        var response = await _catalogApiClient.GetCatalogTypes();
+        var types = response.CatalogTypes;
 
         var items = types
-            .Select(type => new SelectListItem() { Value = type.Id.ToString(), Text = type.Type })
+            .Select(type => new SelectListItem { Value = type.Id.ToString(), Text = type.Type })
             .OrderBy(t => t.Text)
             .ToList();
 
-        var allItem = new SelectListItem() { Value = null, Text = "All", Selected = true };
+        var allItem = new SelectListItem { Value = null, Text = "All", Selected = true };
         items.Insert(0, allItem);
 
         return items;
