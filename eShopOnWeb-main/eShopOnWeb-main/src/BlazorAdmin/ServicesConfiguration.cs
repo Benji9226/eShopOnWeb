@@ -3,7 +3,6 @@ using BlazorShared;
 using BlazorShared.Interfaces;
 using System.Net.Http;
 using BlazorShared.Models;
-using Microsoft.eShopWeb.BlazorAdmin.Clients;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -19,6 +18,7 @@ public static class ServicesConfiguration
         services.AddScoped<CatalogLookupDataService<CatalogType, CatalogTypeResponse>>();
         services.AddScoped<ICatalogItemService, CachedCatalogItemServiceDecorator>();
         services.AddScoped<CatalogItemService>();
+        services.AddScoped<ICatalogApiClient, CatalogApiClientService>();
 
         return services;
     }

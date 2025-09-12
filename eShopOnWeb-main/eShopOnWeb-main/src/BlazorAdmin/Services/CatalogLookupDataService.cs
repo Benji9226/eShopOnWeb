@@ -37,6 +37,7 @@ public class CatalogLookupDataService<TLookupData, TReponse>
         var endpointName = typeof(TLookupData).GetCustomAttribute<EndpointAttribute>().Name;
         _logger.LogInformation($"Fetching {typeof(TLookupData).Name} from API. Enpoint : {endpointName}");
 
+        
         var response = await _httpClient.GetFromJsonAsync<TReponse>($"{_apiUrl}{endpointName}");
         return response.List;
     }

@@ -54,7 +54,7 @@ public class CustomAuthStateProvider : AuthenticationStateProvider
         try
         {
             _logger.LogInformation("Fetching user details from web api.");
-            user = await _httpClient.GetFromJsonAsync<UserInfo>("User");
+            user = await _httpClient.GetFromJsonAsync<UserInfo>("user");
         }
         catch (Exception exc)
         {

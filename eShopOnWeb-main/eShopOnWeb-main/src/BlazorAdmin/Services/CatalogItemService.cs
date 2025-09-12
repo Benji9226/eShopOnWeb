@@ -14,16 +14,19 @@ public class CatalogItemService : ICatalogItemService
     private readonly ICatalogLookupDataService<CatalogType> _typeService;
     private readonly HttpService _httpService;
     private readonly ILogger<CatalogItemService> _logger;
+    private readonly ICatalogApiClient _catalogApiClient;
 
     public CatalogItemService(ICatalogLookupDataService<CatalogBrand> brandService,
         ICatalogLookupDataService<CatalogType> typeService,
         HttpService httpService,
-        ILogger<CatalogItemService> logger)
+        ILogger<CatalogItemService> logger,
+        ICatalogApiClient catalogApiClient)
     {
         _brandService = brandService;
         _typeService = typeService;
         _httpService = httpService;
         _logger = logger;
+        _catalogApiClient = catalogApiClient;
     }
 
     public async Task<CatalogItem> Create(CreateCatalogItemRequest catalogItem)

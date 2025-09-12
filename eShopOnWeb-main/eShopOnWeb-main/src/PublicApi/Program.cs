@@ -14,7 +14,6 @@ using Microsoft.eShopWeb.Infrastructure.Data;
 using Microsoft.eShopWeb.Infrastructure.Identity;
 using Microsoft.eShopWeb.Infrastructure.Logging;
 using Microsoft.eShopWeb.PublicApi;
-using Microsoft.eShopWeb.PublicApi.Clients;
 using Microsoft.eShopWeb.PublicApi.Middleware;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -52,12 +51,6 @@ var configSection = builder.Configuration.GetRequiredSection(BaseUrlConfiguratio
 builder.Services.Configure<BaseUrlConfiguration>(configSection);
 var baseUrlConfig = configSection.Get<BaseUrlConfiguration>();
 
-// HTTP Client for Catalog API
-builder.Services.AddHttpClient<ICatalogApiClient, CatalogApiClient>((sp, client) =>
-{
-    client.BaseAddress = new Uri(baseUrlConfig.CatalogMicroservice);
-});
-// ----------------------------
 
 builder.Services.AddMemoryCache();
 

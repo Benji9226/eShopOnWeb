@@ -195,7 +195,7 @@ app.MapControllerRoute("default", "{controller:slugify=Home}/{action:slugify=Ind
 app.MapRazorPages();
 app.MapHealthChecks("home_page_health_check", new HealthCheckOptions { Predicate = check => check.Tags.Contains("homePageHealthCheck") });
 app.MapHealthChecks("api_health_check", new HealthCheckOptions { Predicate = check => check.Tags.Contains("apiHealthCheck") });
-//endpoints.MapBlazorHub("/admin");
+//app.MapBlazorHub("/admin");
 app.MapFallbackToFile("index.html");
 
 app.Logger.LogInformation("LAUNCHING");

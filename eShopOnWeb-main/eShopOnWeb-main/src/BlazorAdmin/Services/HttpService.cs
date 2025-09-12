@@ -19,7 +19,7 @@ public class HttpService
     {
         _httpClient = httpClient;
         _toastService = toastService;
-        _apiUrl = baseUrlConfiguration.Value.ApiBase;
+        _apiUrl = baseUrlConfiguration.Value.CatalogMicroservice;
     }
 
     public async Task<T> HttpGet<T>(string uri)

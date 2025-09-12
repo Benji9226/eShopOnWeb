@@ -9,7 +9,6 @@ using BlazorShared.Models;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using Microsoft.eShopWeb.BlazorAdmin.Clients;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -22,7 +21,7 @@ var configSection = builder.Configuration.GetRequiredSection(BaseUrlConfiguratio
 builder.Services.Configure<BaseUrlConfiguration>(configSection);
 var baseUrlConfig = configSection.Get<BaseUrlConfiguration>();
 
-builder.Services.AddScoped(sp => new HttpClient() { BaseAddress = new Uri(baseUrlConfig.CatalogMicroservice) });
+builder.Services.AddScoped(sp => new HttpClient() { BaseAddress = new Uri(baseUrlConfig.WebBase) });
 
 builder.Services.AddScoped<ToastService>();
 builder.Services.AddScoped<HttpService>();

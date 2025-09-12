@@ -1,7 +1,7 @@
-﻿using System.Text.Json.Serialization;
-using Microsoft.eShopWeb.PublicAPI.ViewModels;
+﻿using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
-namespace Microsoft.eShopWeb.PublicAPI.DTOs;
+namespace BlazorShared.Models;
 
 public class CatalogItemDTO
 {
@@ -21,7 +21,7 @@ public class CatalogItemDTO
     public int CatalogBrandId { get; set; }
 
 
-    public static CatalogItemDTO ViewModelToDTO(CatalogItemViewModel catalogItemViewModel) {         
+    public static CatalogItemDTO DTOToViewModel(CatalogItemDTO catalogItemViewModel) {         
         return new CatalogItemDTO
         {
             Id = catalogItemViewModel.Id,

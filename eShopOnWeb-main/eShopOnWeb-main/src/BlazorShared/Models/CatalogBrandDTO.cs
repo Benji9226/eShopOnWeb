@@ -1,11 +1,12 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
-namespace Microsoft.eShopWeb.PublicAPI.DTOs;
+namespace BlazorShared.Models;
 
 public class CatalogBrandDto
 {
     [JsonPropertyName("id")]
-    public int? Id { get; set; }
+    public int Id { get; set; }
     [JsonPropertyName("name")]
     public string Name { get; set; } = string.Empty;
 }
