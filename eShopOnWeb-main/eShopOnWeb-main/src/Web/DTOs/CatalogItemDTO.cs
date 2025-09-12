@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using Microsoft.eShopWeb.Web.ViewModels;
 
 namespace Microsoft.eShopWeb.Web.DTOs;
 
@@ -18,6 +19,17 @@ public class CatalogItemDTO
     public int CatalogTypeId { get; set; }
     [JsonPropertyName("catalog_brand_id")]
     public int CatalogBrandId { get; set; }
+
+
+    public static CatalogItemDTO ViewModelToDTO(CatalogItemViewModel catalogItemViewModel) {         
+        return new CatalogItemDTO
+        {
+            Id = catalogItemViewModel.Id,
+            Name = catalogItemViewModel.Name,
+            Price = catalogItemViewModel.Price,
+            PictureUri = catalogItemViewModel.PictureUri
+        };
+    }
 }
 
 public class ListPagedCatalogItemResponse
@@ -27,3 +39,5 @@ public class ListPagedCatalogItemResponse
     [JsonPropertyName("page_count")]
     public int PageCount { get; set; }
 }
+
+

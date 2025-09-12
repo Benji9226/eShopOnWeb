@@ -36,7 +36,7 @@ public class CatalogViewModelService : ICatalogViewModelService
     public async Task<CatalogIndexViewModel> GetCatalogItems(
         int pageIndex, int itemsPage, int? brandId = null, int? typeId = null)
     {
-        var result = await _catalogApiClient.GetCatalogItems(pageIndex, itemsPage, brandId, typeId);
+        var result = await _catalogApiClient.GetCatalogItemsAsync(pageIndex, itemsPage, brandId, typeId);
 
         var vm = new CatalogIndexViewModel
         {
@@ -86,7 +86,7 @@ public class CatalogViewModelService : ICatalogViewModelService
     {
         _logger.LogInformation("GetTypes called.");
 
-        var response = await _catalogApiClient.GetCatalogTypes();
+        var response = await _catalogApiClient.GetCatalogTypesAsync();
         var types = response.CatalogTypes;
 
         var items = types

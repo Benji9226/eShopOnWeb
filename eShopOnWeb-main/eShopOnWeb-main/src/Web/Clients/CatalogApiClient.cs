@@ -7,9 +7,11 @@ namespace Microsoft.eShopWeb.Web.Clients;
 
 public interface ICatalogApiClient
 {
-    Task<ListPagedCatalogItemResponse> GetCatalogItems(int pageIndex, int pageSize, int? brandId = null, int? typeId = null);
+    Task<ListPagedCatalogItemResponse> GetCatalogItemsAsync(int pageIndex, int pageSize, int? brandId = null, int? typeId = null);
     Task<List<CatalogBrandDto>> GetBrandsAsync();
-    Task<ListCatalogTypesResponse> GetCatalogTypes();
+    Task<ListCatalogTypesResponse> GetCatalogTypesAsync();
+    Task<CatalogItemDTO> GetCatalogItemAsync(int catalogItemId);
+    Task<CatalogItemDTO> UpdateCatalogItemAsync(CatalogItemDTO item);
 }
 
 public class CatalogApiClient : ICatalogApiClient
@@ -21,7 +23,7 @@ public class CatalogApiClient : ICatalogApiClient
         _httpClient = httpClient;
     }
 
-    public async Task<ListCatalogTypesResponse> GetCatalogTypes()
+    public async Task<ListCatalogTypesResponse> GetCatalogTypesAsync()
     {
         var response = await _httpClient.GetAsync("types");
         response.EnsureSuccessStatusCode();
@@ -44,7 +46,7 @@ public class CatalogApiClient : ICatalogApiClient
         return result?.CatalogBrands ?? new List<CatalogBrandDto>();
     }
 
-    public async Task<ListPagedCatalogItemResponse> GetCatalogItems(
+    public async Task<ListPagedCatalogItemResponse> GetCatalogItemsAsync(
         int pageIndex, int pageSize, int? brandId = null, int? typeId = null)
     {
         var url = $"catalog-items?pageSize={pageSize}&pageIndex={pageIndex}";
@@ -59,5 +61,28 @@ public class CatalogApiClient : ICatalogApiClient
         return JsonSerializer.Deserialize<ListPagedCatalogItemResponse>(json,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
             ?? new ListPagedCatalogItemResponse();
+    }
+
+    public async Task<CatalogItemDTO> GetCatalogItemAsync(int catalogItemId)
+    {
+        var url = $"catalog-items/{catalogItemId}";
+
+        var response = await _httpClient.GetAsync(url);
+        response.EnsureSuccessStatusCode();
+
+        var json = await response.Content.ReadAsStringAsync();
+        return JsonSerializer.Deserialize<CatalogItemDTO>(json,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+            ?? new CatalogItemDTO();
+    }
+
+    public async Task<CatalogItemDTO> UpdateCatalogItemAsync(CatalogItemDTO item)
+    {
+        var response = await _httpClient.PutAsJsonAsync("/catalog-items", item);
+
+        response.EnsureSuccessStatusCode();
+
+        var updated = await response.Content.ReadFromJsonAsync<CatalogItemDTO>();
+        return updated!;
     }
 }

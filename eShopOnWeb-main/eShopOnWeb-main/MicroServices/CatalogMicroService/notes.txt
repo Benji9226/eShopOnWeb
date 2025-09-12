@@ -17,14 +17,14 @@ Inside the project folder
 
 4. set up .env file with:
     API_PORT=8000
-    DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/catalog_db
+    DATABASE_URL=postgresql+asyncpg://cataloguser:catalogpass@catalog-db:5432/catalogdb
         - DATABASE_URL will be according to the local setup, i use a docker container. this should probably get started in this app somehow with a docker compose or something.
 
 5. update migrations:
     alembic upgrade head
 
 6. start app:
-    uvicorn main:app --reload
+    use docker compose
 -----------
 
 -----------
@@ -41,23 +41,6 @@ docker compose up --build -d
 docker compose logs -f catalog-api
 
 docker compose down
------------
-
------------
-postgres sql docker container:
-
-docker run --name postgres-catalog `
-  -e POSTGRES_USER=postgres `
-  -e POSTGRES_PASSWORD=postgres `
-  -e POSTGRES_DB=catalog_db `
-  -p 5432:5432 `
-  -d postgres:16
------------
-
------------
-start app:
-
-uvicorn main:app --reload
 -----------
 
 -----------
