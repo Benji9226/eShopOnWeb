@@ -5,6 +5,7 @@ using System.Net.Http;
 using BlazorShared.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using System.Security.Cryptography.X509Certificates;
 
 namespace BlazorAdmin;
 
@@ -18,7 +19,7 @@ public static class ServicesConfiguration
         services.AddScoped<CatalogLookupDataService<CatalogType, CatalogTypeResponse>>();
         services.AddScoped<ICatalogItemService, CachedCatalogItemServiceDecorator>();
         services.AddScoped<CatalogItemService>();
-        services.AddScoped<ICatalogApiClient, CatalogApiClientService>();
+        services.AddScoped<CatalogItemService>();
 
         return services;
     }

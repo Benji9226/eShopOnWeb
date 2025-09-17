@@ -12,10 +12,10 @@ public partial class List : BlazorComponent
     public ICatalogItemService CatalogItemService { get; set; }
 
     [Microsoft.AspNetCore.Components.Inject]
-    public ICatalogLookupDataService<CatalogBrand> CatalogBrandService { get; set; }
+    public ICatalogLookupDataService<CatalogBrandDTO> CatalogBrandService { get; set; }
 
     [Microsoft.AspNetCore.Components.Inject]
-    public ICatalogLookupDataService<CatalogType> CatalogTypeService { get; set; }
+    public ICatalogLookupDataService<CatalogTypeDTO> CatalogTypeService { get; set; }
 
     private List<CatalogItem> catalogItems = new List<CatalogItem>();
     private List<CatalogType> catalogTypes = new List<CatalogType>();

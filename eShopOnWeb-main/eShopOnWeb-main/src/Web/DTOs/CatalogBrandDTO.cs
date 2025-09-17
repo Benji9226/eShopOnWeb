@@ -2,7 +2,7 @@
 
 namespace Microsoft.eShopWeb.Web.DTOs;
 
-public class CatalogBrandDto
+public class CatalogBrandDTO
 {
     [JsonPropertyName("id")]
     public int? Id { get; set; }
@@ -13,5 +13,5 @@ public class CatalogBrandDto
 public class ListCatalogBrandsResponse
 {
     [JsonPropertyName("catalog_brands")]
-    public List<CatalogBrandDto> CatalogBrands { get; set; } = new();
+    public List<CatalogBrandDTO> CatalogBrands { get; set; } = new();
 }

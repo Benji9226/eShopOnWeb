@@ -5,11 +5,11 @@ from app.repositories.catalog_item_repository import CatalogItemRepository
 from app.dto.catalog_item_dto import CatalogItemDTO, ListPagedCatalogItemResponse
 from typing import Optional
 
-router = APIRouter(prefix="/catalog-items", tags=["catalog-items"])
+router = APIRouter(prefix="/items", tags=["catalog-items"])
 base_url="http://localhost:8000"  # adjust for your domain
 
-# GET /catalog-items/{id}
-@router.get("/{catalog_item_id}", response_model=CatalogItemDTO)
+# GET /items/{id}
+@router.get("{catalog_item_id}", response_model=CatalogItemDTO)
 async def get_catalog_item(catalog_item_id: int, db: AsyncSession = Depends(get_db)):
     repo = CatalogItemRepository(db)
     item = await repo.get_by_id(catalog_item_id)
@@ -18,8 +18,8 @@ async def get_catalog_item(catalog_item_id: int, db: AsyncSession = Depends(get_
     dto = CatalogItemDTO.model_validate(item)
     return dto
 
-# GET /catalog-items?pageSize=&pageIndex=&catalogBrandId=&catalogTypeId=
-@router.get("/", response_model=ListPagedCatalogItemResponse)
+# GET /items?pageSize=&pageIndex=&catalogBrandId=&catalogTypeId=
+@router.get("", response_model=ListPagedCatalogItemResponse)
 async def list_catalog_items(
     pageSize: int = 10,
     pageIndex: int = 0,
@@ -58,8 +58,8 @@ async def list_catalog_items(
 
     return response
 
-# POST /catalog-items
-@router.post("/", response_model=CatalogItemDTO)
+# POST /items
+@router.post("", response_model=CatalogItemDTO)
 async def create_catalog_item(item: CatalogItemDTO, db: AsyncSession = Depends(get_db)):
     repo = CatalogItemRepository(db)
     catalog_item = item.to_model()
@@ -67,8 +67,8 @@ async def create_catalog_item(item: CatalogItemDTO, db: AsyncSession = Depends(g
     dto = CatalogItemDTO.model_validate(new_item)
     return dto
 
-# PUT /catalog-items
-@router.put("/", response_model=CatalogItemDTO)
+# PUT /items
+@router.put("", response_model=CatalogItemDTO)
 async def update_catalog_item(item: CatalogItemDTO, db: AsyncSession = Depends(get_db)):
     repo = CatalogItemRepository(db)
     existing = await repo.get_by_id(item.id)
@@ -83,8 +83,8 @@ async def update_catalog_item(item: CatalogItemDTO, db: AsyncSession = Depends(g
     dto = CatalogItemDTO.model_validate(updated_item)
     return dto
 
-# DELETE /catalog-items/{id}
-@router.delete("/{catalog_item_id}")
+# DELETE /items/{id}
+@router.delete("{catalog_item_id}")
 async def delete_catalog_item(catalog_item_id: int, db: AsyncSession = Depends(get_db)):
     repo = CatalogItemRepository(db)
     existing = await repo.get_by_id(catalog_item_id)

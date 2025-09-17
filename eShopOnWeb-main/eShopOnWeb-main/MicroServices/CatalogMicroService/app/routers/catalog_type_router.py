@@ -6,15 +6,13 @@ from app.dto.catalog_type_dto import CatalogTypeDTO, ListCatalogTypesResponse
 
 router = APIRouter(prefix="/types", tags=["catalog-types"])
 
-@router.get("/", response_model=ListCatalogTypesResponse)
+@router.get("", response_model=ListCatalogTypesResponse)
 async def read_types(db: AsyncSession = Depends(get_db)):
     repo = CatalogTypeRepository(db)
     items = await repo.list_all()
-    return ListCatalogTypesResponse(
-        catalog_types=[CatalogTypeDTO.model_validate(item) for item in items]
-    )
+    return [CatalogTypeDTO.model_validate(item) for item in items]
 
-@router.post("/", response_model=CatalogTypeDTO)
+@router.post("", response_model=CatalogTypeDTO)
 async def add_type(type_dto: CatalogTypeDTO, db: AsyncSession = Depends(get_db)):
     repo = CatalogTypeRepository(db)
     catalog_type = type_dto.to_model()  # convert DTO -> SQLModel

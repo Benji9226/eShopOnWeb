@@ -5,10 +5,10 @@ using BlazorShared.Models;
 
 namespace BlazorAdmin.Extensions;
 
-public static class CatalogApiClientExtensions
+public static class CatalogExtensions
 {
     public static async Task<List<CatalogBrand>> ToCatalogBrandListAsync(
-        this Task<List<CatalogBrandDto>> brandTask)
+        this Task<List<CatalogBrandDTO>> brandTask)
     {
         var brands = await brandTask;
 
@@ -16,7 +16,7 @@ public static class CatalogApiClientExtensions
             .Select(b => new CatalogBrand
             {
                 Id = b.Id,
-                Name = b.Name
+                Name = b.Brand
             })
             .ToList();
 
@@ -59,5 +59,26 @@ public static class CatalogApiClientExtensions
         };
 
         return editCatalogItemResult;
+    }
+
+    public static async Task<List<CatalogItem>> ToCatalogItemListAsync(
+        this Task<ListPagedCatalogItemResponse> typeTask)
+    {
+        var types = await typeTask;
+
+        var items = types.CatalogItems
+            .Select(b => new CatalogItem
+            {
+                Id = b.Id,
+                Name = b.Name,
+                CatalogBrandId = b.CatalogBrandId,
+                CatalogTypeId = b.CatalogTypeId,
+                Description = b.Description,
+                Price = b.Price,
+                PictureUri = b.PictureUri
+            })
+            .ToList();
+
+        return items;
     }
 }
