@@ -2,6 +2,7 @@
 using System.Net.Http;
 using System.Threading.Tasks;
 using BlazorAdmin;
+using BlazorAdmin.Models;
 using BlazorAdmin.Services;
 using Blazored.LocalStorage;
 using BlazorShared;
@@ -32,7 +33,7 @@ builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
 builder.Services.AddScoped(sp => (CustomAuthStateProvider)sp.GetRequiredService<AuthenticationStateProvider>());
 
-builder.Services.AddBlazorServices();
+builder.Services.AddBlazorServices(builder.Configuration);
 
 builder.Logging.AddConfiguration(builder.Configuration.GetRequiredSection("Logging"));
 

@@ -9,18 +9,12 @@ services:
       context: .
       dockerfile: src/Web/Dockerfile
     depends_on:
-      - "sqlserver"
+      - sqlserver
     networks:
       - eshop-on-web-net
-  eshoppublicapi:
-    image: ${DOCKER_REGISTRY-}eshoppublicapi
-    build:
-      context: .
-      dockerfile: src/PublicApi/Dockerfile
-    depends_on:
-      - "sqlserver"
-    networks:
-      - eshop-on-web-net
+    volumes:
+      - ./keys:/keys
+
   sqlserver:
     image: mcr.microsoft.com/azure-sql-edge
     ports:
@@ -30,4 +24,24 @@ services:
       - ACCEPT_EULA=Y
     networks:
       - eshop-on-web-net
+    volumes:
+      - sqlserver_data:/var/lib/sqlserver/data
+
+  pgadmin:
+    container_name: eshop-pgadmin
+    image: dpage/pgadmin4:7
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8080:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - eshop-on-web-net
+
+volumes:
+  sqlserver_data:
+  pgadmin_data:
+
 

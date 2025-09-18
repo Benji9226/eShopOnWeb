@@ -1,14 +1,13 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using BlazorAdmin.Extensions;
+using BlazorAdmin.Interfaces;
+using BlazorAdmin.Models;
 using BlazorShared.Models;
 
 namespace BlazorAdmin.Services;
 
-public interface ICatalogBrandService
-{
-    Task<List<CatalogBrand>> List();
-}
+
 public class CatalogBrandService : ICatalogBrandService
 {
     private readonly HttpService _httpService;

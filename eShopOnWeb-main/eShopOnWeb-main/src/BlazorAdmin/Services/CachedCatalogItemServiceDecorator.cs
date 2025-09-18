@@ -2,8 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlazorAdmin.Interfaces;
+using BlazorAdmin.Models;
 using Blazored.LocalStorage;
-using BlazorShared.Interfaces;
 using BlazorShared.Models;
 using Microsoft.Extensions.Logging;
 

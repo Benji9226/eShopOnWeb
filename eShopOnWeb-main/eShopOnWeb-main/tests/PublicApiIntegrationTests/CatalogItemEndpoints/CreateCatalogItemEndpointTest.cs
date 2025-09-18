@@ -1,4 +1,5 @@
-﻿using BlazorShared.Models;
+﻿using BlazorAdmin.Models;
+using BlazorShared.Models;
 using Microsoft.eShopWeb;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Net;
@@ -42,13 +43,13 @@ public class CreateCatalogItemEndpointTest
         var response = await client.PostAsync("api/catalog-items", jsonContent);
         response.EnsureSuccessStatusCode();
         var stringResponse = await response.Content.ReadAsStringAsync();
-        var model = stringResponse.FromJson<CreateCatalogItemResponse>();
+        var model = stringResponse.FromJson<CatalogItemDTO>();
 
-        Assert.AreEqual(_testBrandId, model!.CatalogItem.CatalogBrandId);
-        Assert.AreEqual(_testTypeId, model.CatalogItem.CatalogTypeId);
-        Assert.AreEqual(_testDescription, model.CatalogItem.Description);
-        Assert.AreEqual(_testName, model.CatalogItem.Name);
-        Assert.AreEqual(_testPrice, model.CatalogItem.Price);
+        Assert.AreEqual(_testBrandId, model!.CatalogBrandId);
+        Assert.AreEqual(_testTypeId, model.CatalogTypeId);
+        Assert.AreEqual(_testDescription, model.Description);
+        Assert.AreEqual(_testName, model.Name);
+        Assert.AreEqual(_testPrice, model.Price);
     }
 
     private StringContent GetValidNewItemJson()

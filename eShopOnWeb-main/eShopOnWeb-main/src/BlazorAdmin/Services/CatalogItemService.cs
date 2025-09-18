@@ -2,8 +2,10 @@
 using System.Linq;
 using System.Threading.Tasks;
 using BlazorAdmin.Extensions;
-using BlazorShared.Interfaces;
+using BlazorAdmin.Interfaces;
+using BlazorAdmin.Models;
 using BlazorShared.Models;
+using Microsoft.eShopWeb.ApplicationCore.Interfaces;
 using Microsoft.Extensions.Logging;
 
 
@@ -11,47 +13,49 @@ namespace BlazorAdmin.Services;
 
 public class CatalogItemService : ICatalogItemService
 {
-    private readonly ICatalogLookupDataService<CatalogBrand> _brandService;
-    private readonly ICatalogLookupDataService<CatalogType> _typeService;
+    private readonly ICatalogBrandService _brandService;
+    private readonly ICatalogTypeService _typeService;
     private readonly HttpService _httpService;
     private readonly ILogger<CatalogItemService> _logger;
+    private readonly IUriComposer _uriComposer;
 
-    public CatalogItemService(ICatalogLookupDataService<CatalogBrand> brandService,
-        ICatalogLookupDataService<CatalogType> typeService,
+    public CatalogItemService(ICatalogBrandService brandService,
+        ICatalogTypeService typeService,
         HttpService httpService,
-        ILogger<CatalogItemService> logger)
+        ILogger<CatalogItemService> logger,
+        IUriComposer uriComposer)
     {
         _brandService = brandService;
         _typeService = typeService;
         _httpService = httpService;
         _logger = logger;
+        _uriComposer = uriComposer;
     }
 
     public async Task<CatalogItem> Create(CreateCatalogItemRequest catalogItem)
     {
-        var response = await _httpService.HttpPost<CreateCatalogItemResponse>("catalog-items", catalogItem);
-        return response?.CatalogItem;
+        return await _httpService.HttpPost<CatalogItemDTO>("items", catalogItem.AsDTO).ToCatalogItemAsync(_uriComposer);
     }
 
     public async Task<CatalogItem> Edit(CatalogItem catalogItem)
     {
-        return (await _httpService.HttpPut<EditCatalogItemResult>("catalog-items", catalogItem)).CatalogItem;
+        return (await _httpService.HttpPut<CatalogItemDTO>("items", catalogItem.AsDTO).ToCatalogItemAsync(_uriComposer));
     }
 
     public async Task<string> Delete(int catalogItemId)
     {
-        return (await _httpService.HttpDelete<DeleteCatalogItemResponse>("catalog-items", catalogItemId)).Status;
+        return (await _httpService.HttpDelete<DeleteCatalogItemResponse>("items", catalogItemId)).Status;
     }
 
     public async Task<CatalogItem> GetById(int id)
     {
         var brandListTask = _brandService.List();
         var typeListTask = _typeService.List();
-        var itemGetTask = _httpService.HttpGet<EditCatalogItemResult>($"catalog-items/{id}");
+        var itemGetTask = _httpService.HttpGet<CatalogItemDTO>($"items/{id}").ToCatalogItemAsync(_uriComposer);
         await Task.WhenAll(brandListTask, typeListTask, itemGetTask);
         var brands = brandListTask.Result;
         var types = typeListTask.Result;
-        var catalogItem = itemGetTask.Result.CatalogItem;
+        var catalogItem = itemGetTask.Result;
         catalogItem.CatalogBrand = brands.FirstOrDefault(b => b.Id == catalogItem.CatalogBrandId)?.Name;
         catalogItem.CatalogType = types.FirstOrDefault(t => t.Id == catalogItem.CatalogTypeId)?.Name;
         return catalogItem;
@@ -61,9 +65,9 @@ public class CatalogItemService : ICatalogItemService
     {
         _logger.LogInformation("Fetching catalog items from API.");
 
-        var brandListTask = _httpService.HttpGet<List<CatalogBrandDTO>>("brands").ToCatalogBrandListAsync();
-        var typeListTask = _httpService.HttpGet<List<CatalogTypeDTO>>("types").ToCatalogTypeListAsync();
-        var itemListTask = _httpService.HttpGet<ListPagedCatalogItemResponse>($"items?pageSize={pageSize}").ToCatalogItemListAsync();
+        var brandListTask = _brandService.List();
+        var typeListTask = _typeService.List();
+        var itemListTask = _httpService.HttpGet<ListPagedCatalogItemResponse>($"items?pageSize={pageSize}").ToCatalogItemListAsync(_uriComposer);
         await Task.WhenAll(brandListTask, typeListTask, itemListTask);
 
         var brands = brandListTask.Result;
@@ -82,9 +86,9 @@ public class CatalogItemService : ICatalogItemService
     {
         _logger.LogInformation("Fetching catalog items from API.");
 
-        var brandListTask = _httpService.HttpGet<List<CatalogBrandDTO>>("brands").ToCatalogBrandListAsync();
-        var typeListTask = _httpService.HttpGet<List<CatalogTypeDTO>>("types").ToCatalogTypeListAsync();
-        var itemListTask = _httpService.HttpGet<ListPagedCatalogItemResponse>($"items").ToCatalogItemListAsync();
+        var brandListTask = _brandService.List();
+        var typeListTask = _typeService.List();
+        var itemListTask = _httpService.HttpGet<ListPagedCatalogItemResponse>($"items").ToCatalogItemListAsync(_uriComposer);
         await Task.WhenAll(brandListTask, typeListTask, itemListTask);
 
         var brands = brandListTask.Result;

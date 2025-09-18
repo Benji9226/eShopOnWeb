@@ -1,3 +1,4 @@
+from typing import Sequence
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 from app.models.catalog_brand import CatalogBrand
@@ -12,7 +13,7 @@ class CatalogBrandRepository:
         )
         return result.scalar_one_or_none()
 
-    async def list_all(self) -> list[CatalogBrand]:
+    async def list_all(self) -> Sequence[CatalogBrand]:
         result = await self.session.execute(select(CatalogBrand))
         return result.scalars().all()
 

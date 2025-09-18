@@ -1,10 +1,7 @@
-﻿using System.Text.Json.Serialization;
-using Ardalis.Result;
-using Microsoft.eShopWeb.ApplicationCore.Services;
-using Microsoft.eShopWeb.Web.Pages;
-using Microsoft.eShopWeb.Web.ViewModels;
+﻿using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
-namespace Microsoft.eShopWeb.Web.DTOs;
+namespace BlazorAdmin.Models;
 
 public class CatalogItemDTO
 {
@@ -23,7 +20,8 @@ public class CatalogItemDTO
     [JsonPropertyName("catalog_brand_id")]
     public int CatalogBrandId { get; set; }
 
-    public static CatalogItemDTO ViewModelToDTO(CatalogItemViewModel catalogItemViewModel) {         
+
+    public static CatalogItemDTO DTOToViewModel(CatalogItemDTO catalogItemViewModel) {         
         return new CatalogItemDTO
         {
             Id = catalogItemViewModel.Id,

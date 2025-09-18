@@ -9,9 +9,3 @@ public class CatalogBrandDTO
     [JsonPropertyName("name")]
     public string Name { get; set; } = string.Empty;
 }
-
-public class ListCatalogBrandsResponse
-{
-    [JsonPropertyName("catalog_brands")]
-    public List<CatalogBrandDTO> CatalogBrands { get; set; } = new();
-}

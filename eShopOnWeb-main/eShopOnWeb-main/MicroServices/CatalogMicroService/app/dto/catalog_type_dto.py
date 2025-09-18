@@ -10,7 +10,3 @@ class CatalogTypeDTO(BaseModel):
 
     def to_model(self) -> CatalogType:
         return CatalogType(type=self.type)
-
-
-class ListCatalogTypesResponse(BaseModel):
-    catalog_types: List[CatalogTypeDTO] = []

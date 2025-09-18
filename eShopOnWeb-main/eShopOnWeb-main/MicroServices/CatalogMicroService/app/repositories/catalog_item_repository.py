@@ -1,3 +1,4 @@
+from typing import Sequence
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.catalog_item import CatalogItem
 from sqlalchemy import func
@@ -17,7 +18,7 @@ class CatalogItemRepository:
         take: int = 10,
         brand_id: int | None = None,
         type_id: int | None = None
-    ) -> list[CatalogItem]:
+    ) -> Sequence[CatalogItem]:
         stmt = select(CatalogItem)
         if brand_id is not None:
             stmt = stmt.where(CatalogItem.catalog_brand_id == brand_id)

@@ -36,6 +36,3 @@ class CatalogItemDTO(BaseModel):
             picture_uri=self.picture_uri
         )
 
-class ListPagedCatalogItemResponse(BaseModel):
-    catalog_items: List[CatalogItemDTO] = []
-    page_count: int = 0

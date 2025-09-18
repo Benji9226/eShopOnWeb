@@ -1,14 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using BlazorAdmin.Extensions;
+using BlazorAdmin.Interfaces;
+using BlazorAdmin.Models;
 using BlazorShared.Models;
 
 namespace BlazorAdmin.Services;
-
-public interface ICatalogTypeService
-{
-    Task<List<CatalogType>> List();
-}
 
 public class CatalogTypeService : ICatalogTypeService
 {

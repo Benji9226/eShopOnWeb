@@ -10,7 +10,3 @@ class CatalogBrandDTO(BaseModel):
     def to_model(self):
         from app.models.catalog_brand import CatalogBrand
         return CatalogBrand(brand=self.brand)
-
-
-class ListCatalogBrandsResponse(BaseModel):
-    catalog_brands: List[CatalogBrandDTO] = []

@@ -86,8 +86,7 @@ public class CatalogViewModelService : ICatalogViewModelService
     {
         _logger.LogInformation("GetTypes called.");
 
-        var response = await _catalogApiClient.GetCatalogTypesAsync();
-        var types = response.CatalogTypes;
+        var types = await _catalogApiClient.GetCatalogTypesAsync();
 
         var items = types
             .Select(type => new SelectListItem { Value = type.Id.ToString(), Text = type.Type })

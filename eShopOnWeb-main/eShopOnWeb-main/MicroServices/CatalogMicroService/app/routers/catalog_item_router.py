@@ -2,7 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.repositories.catalog_item_repository import CatalogItemRepository
-from app.dto.catalog_item_dto import CatalogItemDTO, ListPagedCatalogItemResponse
+from app.dto.catalog_item_dto import CatalogItemDTO
+from app.schemas.delete_catalog_item_response import DeleteCatalogItemResponse
+from app.schemas.list_paged_catalog_item_response import ListPagedCatalogItemResponse
 from typing import Optional
 
 router = APIRouter(prefix="/items", tags=["catalog-items"])
@@ -84,11 +86,11 @@ async def update_catalog_item(item: CatalogItemDTO, db: AsyncSession = Depends(g
     return dto
 
 # DELETE /items/{id}
-@router.delete("{catalog_item_id}")
+@router.delete("/{catalog_item_id}", response_model=DeleteCatalogItemResponse)
 async def delete_catalog_item(catalog_item_id: int, db: AsyncSession = Depends(get_db)):
     repo = CatalogItemRepository(db)
     existing = await repo.get_by_id(catalog_item_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Catalog item not found")
     await repo.delete(existing)
-    return {"detail": "Deleted"}
+    return DeleteCatalogItemResponse()

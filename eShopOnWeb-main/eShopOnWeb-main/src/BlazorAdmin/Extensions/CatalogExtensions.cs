@@ -1,7 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlazorAdmin.Models;
 using BlazorShared.Models;
+using Microsoft.eShopWeb.ApplicationCore.Interfaces;
+using Microsoft.eShopWeb.ApplicationCore.Services;
 
 namespace BlazorAdmin.Extensions;
 
@@ -39,43 +42,40 @@ public static class CatalogExtensions
         return items;
     }
 
-    public static async Task<EditCatalogItemResult> ToEditCatalogItemResultAsync(
-    this Task<CatalogItemDTO> itemTask)
+    public static async Task<CatalogItem> ToCatalogItemAsync(
+    this Task<CatalogItemDTO> itemTask, IUriComposer uriComposer)
     {
         var item = await itemTask;
 
-        var editCatalogItemResult = new EditCatalogItemResult
+        var catalogItem = new CatalogItem
         {
-            CatalogItem = new CatalogItem
-            {
-                Id = item.Id,
-                Name = item.Name,
-                Description = item.Description,
-                Price = item.Price,
-                PictureUri = item.PictureUri,
-                CatalogTypeId = item.CatalogTypeId,
-                CatalogBrandId = item.CatalogBrandId
-            }
+            Id = item.Id,
+            Name = item.Name,
+            Description = item.Description,
+            Price = item.Price,
+            PictureUri = uriComposer.ComposePicUri(item.PictureUri),
+            CatalogTypeId = item.CatalogTypeId,
+            CatalogBrandId = item.CatalogBrandId
         };
 
-        return editCatalogItemResult;
+        return catalogItem;
     }
 
     public static async Task<List<CatalogItem>> ToCatalogItemListAsync(
-        this Task<ListPagedCatalogItemResponse> typeTask)
+        this Task<ListPagedCatalogItemResponse> typeTask, IUriComposer uriComposer)
     {
         var types = await typeTask;
 
         var items = types.CatalogItems
-            .Select(b => new CatalogItem
+            .Select(item => new CatalogItem
             {
-                Id = b.Id,
-                Name = b.Name,
-                CatalogBrandId = b.CatalogBrandId,
-                CatalogTypeId = b.CatalogTypeId,
-                Description = b.Description,
-                Price = b.Price,
-                PictureUri = b.PictureUri
+                Id = item.Id,
+                Name = item.Name,
+                CatalogBrandId = item.CatalogBrandId,
+                CatalogTypeId = item.CatalogTypeId,
+                Description = item.Description,
+                Price = item.Price,
+                PictureUri = uriComposer.ComposePicUri(item.PictureUri),
             })
             .ToList();
 
