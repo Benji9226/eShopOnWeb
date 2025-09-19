@@ -1,9 +1,20 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { StockModule } from './stock/stock.module';
 
 @Module({
-  imports: [StockModule],
-  controllers: [],
-  providers: [],
+  imports: [
+    TypeOrmModule.forRoot({
+      type: 'postgres',
+      host: process.env.DATABASE_HOST || 'localhost',
+      port: +(process.env.DATABASE_PORT || 5432),
+      username: process.env.DATABASE_USER || 'postgres',
+      password: process.env.DATABASE_PASSWORD || 'postgres',
+      database: process.env.DATABASE_NAME || 'stockdb',
+      autoLoadEntities: true,
+      synchronize: true, // ⚠️ auto sync for dev, disable in prod
+    }),
+    StockModule,
+  ],
 })
 export class AppModule {}
