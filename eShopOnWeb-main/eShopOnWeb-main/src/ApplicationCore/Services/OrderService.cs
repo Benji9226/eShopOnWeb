@@ -50,11 +50,14 @@ public class OrderService : IOrderService
         var createOrderDto = new CreateOrderDto
         {
             BuyerId = basket.BuyerId,
-            ShipToAddress_Street = shippingAddress.Street,
-            ShipToAddress_City = shippingAddress.City,
-            ShipToAddress_State = shippingAddress.State,
-            ShipToAddress_Country = shippingAddress.Country,
-            ShipToAddress_ZipCode = shippingAddress.ZipCode,
+            Shipping = new ShippingAddressDto
+            {
+                Street = shippingAddress.Street,
+                City = shippingAddress.City,
+                State = shippingAddress.State,
+                Country = shippingAddress.Country,
+                Zip = shippingAddress.ZipCode
+            },
             Items = items
         };
 

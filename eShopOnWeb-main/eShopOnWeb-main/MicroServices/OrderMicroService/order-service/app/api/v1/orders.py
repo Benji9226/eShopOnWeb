@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession
 from app import schemas, services, db
 
@@ -18,4 +19,5 @@ async def get_order(order_id: int, session: AsyncSession = Depends(db.get_sessio
 
 @router.get("/", response_model=list[schemas.OrderRead])
 async def list_orders(buyer_id: str, session: AsyncSession = Depends(db.get_session)):
-    return await services.list_orders_for_buyer(session, buyer_id)
+    orders = await services.list_orders_for_buyer(session, buyer_id) 
+    return [schemas.OrderRead.from_orm(o) for o in orders] 

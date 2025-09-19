@@ -9,10 +9,9 @@ public class OrderReadDto
 {
     public int Id { get; set; }
     public string BuyerId { get; set; }
-    public DateTime OrderDate { get; set; }
+    public DateTimeOffset OrderDate { get; set; }
     public List<OrderItemDto> Items { get; set; }
     public ShippingAddressDto Shipping { get; set; }
-
     public decimal Total { get; set; }
 
 }
