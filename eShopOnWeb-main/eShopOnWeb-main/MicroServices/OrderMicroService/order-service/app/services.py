@@ -1,10 +1,12 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from app import models, schemas, events
+from datetime import datetime, timezone
 from decimal import Decimal
-import datetime
 import asyncio
 from typing import List
+
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+
+from app import models, schemas, events
 
 # -----------------------
 # Helper: calculate total
@@ -16,10 +18,10 @@ def calculate_total(items: List[models.OrderItem]) -> float:
 # Create a new order
 # -----------------------
 async def create_order(db: AsyncSession, order_in: schemas.OrderCreate) -> schemas.OrderRead:
-    # Create Order model
+    # Create Order model with timezone-aware UTC datetime
     order = models.Order(
         buyer_id=order_in.buyer_id,
-        order_date=datetime.datetime.utcnow(),
+        order_date=datetime.now(timezone.utc),
         shiptoaddress_street=order_in.shipping.street,
         shiptoaddress_city=order_in.shipping.city,
         shiptoaddress_state=order_in.shipping.state,
@@ -78,7 +80,7 @@ async def create_order(db: AsyncSession, order_in: schemas.OrderCreate) -> schem
     return schemas.OrderRead(
         id=order.id,
         buyer_id=order.buyer_id,
-        order_date=order.order_date,
+        order_date=order.order_date,  # use DB value
         shipping=schemas.Shipping(
             street=order.shiptoaddress_street,
             city=order.shiptoaddress_city,
@@ -115,7 +117,7 @@ async def get_order(db: AsyncSession, order_id: int) -> schemas.OrderRead | None
     return schemas.OrderRead(
         id=order.id,
         buyer_id=order.buyer_id,
-        order_date=order.order_date,
+        order_date=order.order_date,  # use DB value
         shipping=schemas.Shipping(
             street=order.shiptoaddress_street,
             city=order.shiptoaddress_city,
@@ -153,7 +155,7 @@ async def list_orders_for_buyer(db: AsyncSession, buyer_id: str) -> list[schemas
         schemas.OrderRead(
             id=o.id,
             buyer_id=o.buyer_id,
-            order_date=o.order_date,
+            order_date=o.order_date,  # use DB value
             shipping=schemas.Shipping(
                 street=o.shiptoaddress_street,
                 city=o.shiptoaddress_city,
