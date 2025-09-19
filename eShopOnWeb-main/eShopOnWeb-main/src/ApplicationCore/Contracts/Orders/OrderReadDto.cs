@@ -11,4 +11,8 @@ public class OrderReadDto
     public string BuyerId { get; set; }
     public DateTime OrderDate { get; set; }
     public List<OrderItemDto> Items { get; set; }
+    public ShippingAddressDto Shipping { get; set; }
+
+    public decimal Total { get; set; }
+
 }
