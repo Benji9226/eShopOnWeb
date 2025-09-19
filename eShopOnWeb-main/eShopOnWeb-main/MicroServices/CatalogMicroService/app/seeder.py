@@ -33,11 +33,20 @@ async def seed_catalog_types(session: AsyncSession):
     
     await session.commit()
 
-
 async def seed_catalog_items(session: AsyncSession):
     items_to_add = [
-        CatalogItem(catalog_brand_id=2, catalog_type_id=2, name=".NET Bot Black Sweatshirt", description=".NET Bot Black Sweatshirt", price=19.5, picture_uri="http://catalogbaseurltobereplaced/images/products/1.png"),
-        CatalogItem(catalog_brand_id=1, catalog_type_id=2, name=".NET Black & White Mug", description=".NET Black & White Mug", price=8.50, picture_uri="http://catalogbaseurltobereplaced/images/products/2.png"),
+        CatalogItem(catalog_type_id=2, catalog_brand_id=2, description=".NET Bot Black Sweatshirt", name=".NET Bot Black Sweatshirt", price=19.5, picture_uri="http://catalogbaseurltobereplaced/images/products/1.png"),
+        CatalogItem(catalog_type_id=1, catalog_brand_id=2, description=".NET Black & White Mug", name=".NET Black & White Mug", price=8.50, picture_uri="http://catalogbaseurltobereplaced/images/products/2.png"),
+        CatalogItem(catalog_type_id=2, catalog_brand_id=5, description="Prism White T-Shirt", name="Prism White T-Shirt", price=12, picture_uri="http://catalogbaseurltobereplaced/images/products/3.png"),
+        CatalogItem(catalog_type_id=2, catalog_brand_id=2, description=".NET Foundation Sweatshirt", name=".NET Foundation Sweatshirt", price=12, picture_uri="http://catalogbaseurltobereplaced/images/products/4.png"),
+        CatalogItem(catalog_type_id=3, catalog_brand_id=5, description="Roslyn Red Sheet", name="Roslyn Red Sheet", price=8.5, picture_uri="http://catalogbaseurltobereplaced/images/products/5.png"),
+        CatalogItem(catalog_type_id=2, catalog_brand_id=2, description=".NET Blue Sweatshirt", name=".NET Blue Sweatshirt", price=12, picture_uri="http://catalogbaseurltobereplaced/images/products/6.png"),
+        CatalogItem(catalog_type_id=2, catalog_brand_id=5, description="Roslyn Red T-Shirt", name="Roslyn Red T-Shirt", price=12, picture_uri="http://catalogbaseurltobereplaced/images/products/7.png"),
+        CatalogItem(catalog_type_id=2, catalog_brand_id=5, description="Kudu Purple Sweatshirt", name="Kudu Purple Sweatshirt", price=8.5, picture_uri="http://catalogbaseurltobereplaced/images/products/8.png"),
+        CatalogItem(catalog_type_id=1, catalog_brand_id=5, description="Cup<T> White Mug", name="Cup<T> White Mug", price=12, picture_uri="http://catalogbaseurltobereplaced/images/products/9.png"),
+        CatalogItem(catalog_type_id=3, catalog_brand_id=2, description=".NET Foundation Sheet", name=".NET Foundation Sheet", price=12, picture_uri="http://catalogbaseurltobereplaced/images/products/10.png"),
+        CatalogItem(catalog_type_id=3, catalog_brand_id=2, description="Cup<T> Sheet", name="Cup<T> Sheet", price=8.5, picture_uri="http://catalogbaseurltobereplaced/images/products/11.png"),
+        CatalogItem(catalog_type_id=2, catalog_brand_id=5, description="Prism White TShirt", name="Prism White TShirt", price=12, picture_uri="http://catalogbaseurltobereplaced/images/products/12.png")
     ]
     
     for item in items_to_add:
@@ -46,7 +55,6 @@ async def seed_catalog_items(session: AsyncSession):
             session.add(item)
     
     await session.commit()
-
 
 async def seed_db(session: AsyncSession):
     await seed_catalog_brands(session)

@@ -30,11 +30,13 @@ public class CustomAuthStateProvider : AuthenticationStateProvider
 
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
     {
+        _logger.LogInformation("Getting Authentication State Async");
         return new AuthenticationState(await GetUser(useCache: true));
     }
 
     private async ValueTask<ClaimsPrincipal> GetUser(bool useCache = false)
     {
+        _logger.LogInformation("Getting User");
         var now = DateTimeOffset.Now;
         if (useCache && now < _userLastCheck + UserCacheRefreshInterval)
         {

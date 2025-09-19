@@ -4,6 +4,7 @@ networks:
 
 services:
   eshopwebmvc:
+    container_name: eshopwebmvc  
     image: ${DOCKER_REGISTRY-}eshopwebmvc
     build:
       context: .
@@ -12,10 +13,18 @@ services:
       - sqlserver
     networks:
       - eshop-on-web-net
+    environment:
+     - ASPNETCORE_ENVIRONMENT=Docker
+     - ASPNETCORE_URLS=http://+:8080
+    ports:
+      - "5106:8080"
     volumes:
+      - ~/.aspnet/https:/root/.aspnet/https:ro
+      - ~/.microsoft/usersecrets:/root/.microsoft/usersecrets:ro
       - ./keys:/keys
 
   sqlserver:
+    container_name: sqlserver
     image: mcr.microsoft.com/azure-sql-edge
     ports:
       - "1433:1433"
@@ -27,21 +36,7 @@ services:
     volumes:
       - sqlserver_data:/var/lib/sqlserver/data
 
-  pgadmin:
-    container_name: eshop-pgadmin
-    image: dpage/pgadmin4:7
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-    ports:
-      - "8080:80"
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-    networks:
-      - eshop-on-web-net
-
 volumes:
   sqlserver_data:
-  pgadmin_data:
 
 

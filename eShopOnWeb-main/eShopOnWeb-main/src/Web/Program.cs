@@ -21,7 +21,9 @@ using Microsoft.eShopWeb.Web.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
+builder.Logging.SetMinimumLevel(LogLevel.Information);
 
 if (builder.Environment.IsDevelopment() || builder.Environment.EnvironmentName == "Docker"){
     // Configure SQL Server (local)
@@ -58,7 +60,12 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     .AddCookie(options =>
     {
         options.Cookie.HttpOnly = true;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+
+        // For Docker / local testing, use None
+        options.Cookie.SecurePolicy = builder.Environment.EnvironmentName == "Docker"
+            ? CookieSecurePolicy.None
+            : CookieSecurePolicy.Always;
+
         options.Cookie.SameSite = SameSiteMode.Lax;
     });
 
