@@ -2,6 +2,7 @@
 using System.Net.Http;
 using System.Threading.Tasks;
 using BlazorAdmin;
+using BlazorAdmin.Models;
 using BlazorAdmin.Services;
 using Blazored.LocalStorage;
 using BlazorShared;
@@ -19,8 +20,9 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 var configSection = builder.Configuration.GetRequiredSection(BaseUrlConfiguration.CONFIG_NAME);
 builder.Services.Configure<BaseUrlConfiguration>(configSection);
+var baseUrlConfig = configSection.Get<BaseUrlConfiguration>();
 
-builder.Services.AddScoped(sp => new HttpClient() { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+builder.Services.AddScoped(sp => new HttpClient() { BaseAddress = new Uri(baseUrlConfig.WebBase) });
 
 builder.Services.AddScoped<ToastService>();
 builder.Services.AddScoped<HttpService>();
@@ -31,7 +33,7 @@ builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
 builder.Services.AddScoped(sp => (CustomAuthStateProvider)sp.GetRequiredService<AuthenticationStateProvider>());
 
-builder.Services.AddBlazorServices();
+builder.Services.AddBlazorServices(builder.Configuration);
 
 builder.Logging.AddConfiguration(builder.Configuration.GetRequiredSection("Logging"));
 

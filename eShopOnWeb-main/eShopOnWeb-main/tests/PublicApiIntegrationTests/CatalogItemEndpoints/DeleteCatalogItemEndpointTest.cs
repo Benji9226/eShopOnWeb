@@ -1,4 +1,5 @@
-﻿using BlazorShared.Models;
+﻿using BlazorAdmin.Models;
+using BlazorShared.Models;
 using Microsoft.eShopWeb;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Net;

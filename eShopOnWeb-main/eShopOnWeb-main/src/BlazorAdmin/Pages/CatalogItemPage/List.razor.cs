@@ -1,8 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using BlazorAdmin.Helpers;
-using BlazorShared.Interfaces;
-using BlazorShared.Models;
+using BlazorAdmin.Interfaces;
+using BlazorAdmin.Models;
+using BlazorAdmin.Services;
 
 namespace BlazorAdmin.Pages.CatalogItemPage;
 
@@ -12,10 +13,10 @@ public partial class List : BlazorComponent
     public ICatalogItemService CatalogItemService { get; set; }
 
     [Microsoft.AspNetCore.Components.Inject]
-    public ICatalogLookupDataService<CatalogBrand> CatalogBrandService { get; set; }
+    public ICatalogBrandService CatalogBrandService { get; set; }
 
     [Microsoft.AspNetCore.Components.Inject]
-    public ICatalogLookupDataService<CatalogType> CatalogTypeService { get; set; }
+    public ICatalogTypeService CatalogTypeService { get; set; }
 
     private List<CatalogItem> catalogItems = new List<CatalogItem>();
     private List<CatalogType> catalogTypes = new List<CatalogType>();
