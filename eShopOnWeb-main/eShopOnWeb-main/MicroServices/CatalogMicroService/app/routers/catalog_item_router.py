@@ -8,7 +8,7 @@ from app.schemas.list_paged_catalog_item_response import ListPagedCatalogItemRes
 from typing import Optional
 
 router = APIRouter(prefix="/items", tags=["catalog-items"])
-base_url="http://localhost:8000"  # adjust for your domain
+base_url="http://localhost:8000"  
 
 # GET /items/{id}
 @router.get("{catalog_item_id}", response_model=CatalogItemDTO)
@@ -20,45 +20,47 @@ async def get_catalog_item(catalog_item_id: int, db: AsyncSession = Depends(get_
     dto = CatalogItemDTO.model_validate(item)
     return dto
 
-# GET /items?pageSize=&pageIndex=&catalogBrandId=&catalogTypeId=
 @router.get("", response_model=ListPagedCatalogItemResponse)
 async def list_catalog_items(
-    pageSize: int = 10,
+    pageSize: Optional[int] = None,
     pageIndex: int = 0,
     catalogBrandId: Optional[int] = None,
     catalogTypeId: Optional[int] = None,
     db: AsyncSession = Depends(get_db)
-    ):
-    
+):
     repo = CatalogItemRepository(db)
 
     # count total items
     total_items = await repo.count_catalog_items(db, catalogBrandId, catalogTypeId)
 
-    # fetch paginated items
-    items = await repo.list_catalog_items(
-        db,
-        skip=pageIndex * pageSize,
-        take=pageSize,
-        brand_id=catalogBrandId,
-        type_id=catalogTypeId
-    )
+    if pageSize is None:
+        # fetch all items when pageSize is not specified
+        items = await repo.list_catalog_items(
+            db,
+            skip=0,
+            take=total_items,
+            brand_id=catalogBrandId,
+            type_id=catalogTypeId
+        )
+        page_count = 1 if total_items > 0 else 0
+    else:
+        # fetch paginated items
+        items = await repo.list_catalog_items(
+            db,
+            skip=pageIndex * pageSize,
+            take=pageSize,
+            brand_id=catalogBrandId,
+            type_id=catalogTypeId
+        )
+        page_count = (total_items + pageSize - 1) // pageSize
 
-    # map to DTOs and apply UriComposer
-    catalog_items = []
-    for i in items:
-        dto = CatalogItemDTO.model_validate(i)
-        catalog_items.append(dto)
+    # map to DTOs
+    catalog_items = [CatalogItemDTO.model_validate(i) for i in items]
 
-    # compute page count like C# code
-    page_count = (total_items + pageSize - 1) // pageSize if pageSize else (1 if total_items else 0)
-
-    response = ListPagedCatalogItemResponse(
+    return ListPagedCatalogItemResponse(
         catalog_items=catalog_items,
         page_count=page_count
     )
-
-    return response
 
 # POST /items
 @router.post("", response_model=CatalogItemDTO)
