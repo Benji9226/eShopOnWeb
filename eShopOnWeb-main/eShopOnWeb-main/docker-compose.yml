@@ -1,3 +1,4 @@
+# husk: docker network create eshop-on-web-net
 networks:
   eshop-on-web-net:
     external: true

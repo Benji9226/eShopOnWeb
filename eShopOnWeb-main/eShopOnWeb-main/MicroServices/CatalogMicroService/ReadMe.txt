@@ -20,8 +20,7 @@ Inside the project folder
     DATABASE_URL=postgresql+asyncpg://cataloguser:catalogpass@catalog-db:5432/catalogdb
         - DATABASE_URL will be according to the local setup, i use a docker container. this should probably get started in this app somehow with a docker compose or something.
 
-5. update migrations:
-    alembic upgrade head
+5. docker network create eshop-on-web-net
 
 6. start app:
     use docker compose

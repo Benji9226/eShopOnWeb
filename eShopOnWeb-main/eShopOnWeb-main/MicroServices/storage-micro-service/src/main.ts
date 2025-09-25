@@ -5,15 +5,13 @@ import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // REST API port
   app.listen(3000);
 
-  // RabbitMQ microservice
   const microservice = app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.RMQ,
     options: {
-      urls: ['amqp://user:pass@rabbitmq:5672'],
-      queue: 'stock_queue',
+      urls: [process.env.RABBITMQ_URI || 'amqp://guest:guest@localhost:5672'],
+      queue: 'catalog_item_stock_queue',
       queueOptions: { durable: true },
     },
   });

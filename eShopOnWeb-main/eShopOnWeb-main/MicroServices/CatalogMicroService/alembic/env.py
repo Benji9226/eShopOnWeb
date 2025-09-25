@@ -6,7 +6,7 @@ from alembic import context
 import os
 import sys
 from dotenv import load_dotenv
-from app.models.base_entity import SQLModel
+from sqlmodel import SQLModel
 load_dotenv()
 
 config = context.config

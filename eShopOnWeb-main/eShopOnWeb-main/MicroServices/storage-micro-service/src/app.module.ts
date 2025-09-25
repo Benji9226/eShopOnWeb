@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { StockModule } from './stock/stock.module';
+import { CatalogItemStockModule } from './stock/catalog-item-stock.module';
 
 @Module({
   imports: [
@@ -12,9 +12,9 @@ import { StockModule } from './stock/stock.module';
       password: process.env.DATABASE_PASSWORD || 'postgres',
       database: process.env.DATABASE_NAME || 'stockdb',
       autoLoadEntities: true,
-      synchronize: true, // ⚠️ auto sync for dev, disable in prod
+      synchronize: true, // only for development
     }),
-    StockModule,
+    CatalogItemStockModule,
   ],
 })
 export class AppModule {}
