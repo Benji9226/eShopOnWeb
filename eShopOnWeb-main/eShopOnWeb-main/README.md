@@ -19,6 +19,7 @@ All microservices and the main app will connect to this network to communicate w
 In the Catalog microservice folder, create a .env file with the following contents:
 
 API_PORT=8000
+
 DATABASE_URL=postgresql+asyncpg://cataloguser:catalogpass@catalog-db:5432/catalogdb
 
 - API_PORT specifies the port the Catalog API will run on inside the container.
