@@ -32,7 +32,7 @@ services:
     networks:
       - eshop-on-web-net
 
-  pgadmin:  
+  catalog-pgadmin:  
     container_name: catalog-pgadmin
     image: dpage/pgadmin4:7
     environment:
