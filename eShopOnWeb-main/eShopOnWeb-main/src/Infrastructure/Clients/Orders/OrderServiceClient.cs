@@ -2,51 +2,35 @@
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Json;
-using System.Text;
-using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.eShopWeb.ApplicationCore.Contracts.Orders;
+using Microsoft.Extensions.Configuration;
 
 namespace Microsoft.eShopWeb.Infrastructure.Clients.Orders;
 
 public class OrderServiceClient : IOrderServiceClient
 {
     private readonly HttpClient _httpClient;
-    private readonly JsonSerializerOptions _jsonOptions;
 
-    public OrderServiceClient(HttpClient httpClient)
+    public OrderServiceClient(HttpClient httpClient, IConfiguration configuration)
     {
-        _httpClient = httpClient;
+        var baseUrl = configuration["baseUrls:ordersMicroservice"];
 
-        // Ensure camelCase serialization and respect for JsonPropertyName attributes
-        _jsonOptions = new JsonSerializerOptions
+        if (string.IsNullOrWhiteSpace(baseUrl))
         {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = false,
-            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-        };
-    }
-
-    public async Task CreateOrderAsync(CreateOrderDto order)
-    {
-        // Serialize manually to ensure nested Shipping object is preserved
-        var json = JsonSerializer.Serialize(order, _jsonOptions);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
-        var response = await _httpClient.PostAsync("/api/v1/orders/", content);
-
-        var body = await response.Content.ReadAsStringAsync();
-        Console.WriteLine(body);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            Console.WriteLine($"StatusCode: {response.StatusCode}");
+            throw new InvalidOperationException("Missing configuration for baseUrls:ordersMicroservice");
         }
 
+        httpClient.BaseAddress = new Uri(baseUrl.TrimEnd('/'));
+        _httpClient = httpClient;
     }
 
+    public async Task CreateOrderAsync(CreateOrderDto order) =>
+        await _httpClient.PostAsJsonAsync("api/v1/orders", order);
+
     public async Task<OrderReadDto> GetOrderByIdAsync(int orderId) =>
-        await _httpClient.GetFromJsonAsync<OrderReadDto>($"/api/v1/orders/{orderId}", _jsonOptions);
+        await _httpClient.GetFromJsonAsync<OrderReadDto>($"api/v1/orders/{orderId}");
 
     public async Task<List<OrderReadDto>> GetOrdersForUserAsync(string buyerId) =>
-        await _httpClient.GetFromJsonAsync<List<OrderReadDto>>($"/api/v1/orders/?buyer_id={buyerId}", _jsonOptions);
+        await _httpClient.GetFromJsonAsync<List<OrderReadDto>>($"api/v1/orders?buyer_id={buyerId}");
 }
