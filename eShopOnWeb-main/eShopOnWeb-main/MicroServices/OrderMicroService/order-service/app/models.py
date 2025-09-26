@@ -4,11 +4,14 @@ import datetime
 
 Base = declarative_base()
 
+def utcnow():
+    return datetime.datetime.now(datetime.timezone.utc)
+
 class Order(Base):
     __tablename__ = "orders"
     id = Column(Integer, primary_key=True, index=True)
     buyer_id = Column(String(256), nullable=False, index=True)
-    order_date = Column(DateTime(timezone=True), default=datetime.datetime.utcnow)
+    order_date = Column(DateTime(timezone=True), default=utcnow)
 
     shiptoaddress_street = Column(String(180), nullable=True)
     shiptoaddress_city = Column(String(100), nullable=True)
@@ -22,7 +25,7 @@ class Order(Base):
         "OrderItem",
         back_populates="order",
         cascade="all, delete-orphan",
-        lazy="selectin"  # <--- async-friendly eager loading
+        lazy="selectin"
     )
 
 
