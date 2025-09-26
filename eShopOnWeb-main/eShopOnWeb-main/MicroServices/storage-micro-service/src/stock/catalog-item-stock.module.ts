@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CatalogItemStockService } from './catalog-item-stock.service';
-import { CatalogItemStockController } from './catalog-item-stock.controller';
 import { CatalogItemStockConsumer } from './catalog-item-stock.consumer';
 import { CatalogItemStock } from './entities/catalog-item-stock.entity';
 
@@ -15,7 +14,6 @@ import { CatalogItemStock } from './entities/catalog-item-stock.entity';
       connectionInitOptions: { wait: false },
     }),
   ],
-  controllers: [CatalogItemStockController],
   providers: [CatalogItemStockService, CatalogItemStockConsumer],
 })
 export class CatalogItemStockModule {}

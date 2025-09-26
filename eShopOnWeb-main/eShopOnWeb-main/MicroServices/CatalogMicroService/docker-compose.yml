@@ -21,6 +21,7 @@ services:
     depends_on:
       - catalog-db
     environment:
+      API_PORT: 8000
       DATABASE_URL: postgresql+asyncpg://cataloguser:catalogpass@catalog-db:5432/catalogdb
     ports:
       - "8000:8000"

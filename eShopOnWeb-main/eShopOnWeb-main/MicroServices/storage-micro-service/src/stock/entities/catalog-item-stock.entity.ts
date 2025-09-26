@@ -8,6 +8,9 @@ export class CatalogItemStock {
   @Column('int')
   itemId: number;
 
-  @Column('int')
-  quantity: number;
+  @Column('int', { default: 0 })
+  total: number;
+
+  @Column('int', { default: 0 })
+  reserved: number;
 }
