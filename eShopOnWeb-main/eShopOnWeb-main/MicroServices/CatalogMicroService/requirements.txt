@@ -1,0 +1,7 @@
+fastapi # Web framework
+uvicorn[standard] # ASGI server
+pydantic # For data validation and settings management
+python-dotenv # For environment variable management
+sqlmodel # ORM
+asyncpg # PostgreSQL driver
+alembic # For database migrations

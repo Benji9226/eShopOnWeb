@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Text;
 using BlazorShared;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -18,6 +19,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MinimalApi.Endpoint.Configurations.Extensions;
@@ -48,6 +50,7 @@ builder.Services.AddScoped<ITokenClaimsService, IdentityTokenClaimService>();
 var configSection = builder.Configuration.GetRequiredSection(BaseUrlConfiguration.CONFIG_NAME);
 builder.Services.Configure<BaseUrlConfiguration>(configSection);
 var baseUrlConfig = configSection.Get<BaseUrlConfiguration>();
+
 
 builder.Services.AddMemoryCache();
 
@@ -82,7 +85,6 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddControllers();
-builder.Services.AddAutoMapper(typeof(MappingProfile).Assembly);
 builder.Configuration.AddEnvironmentVariables();
 
 builder.Services.AddEndpointsApiExplorer();
@@ -179,3 +181,5 @@ app.Logger.LogInformation("LAUNCHING PublicApi");
 app.Run();
 
 public partial class Program { }
+
+

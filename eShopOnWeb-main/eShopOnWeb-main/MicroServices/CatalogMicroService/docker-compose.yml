@@ -1,0 +1,51 @@
+networks:
+  eshop-on-web-net:
+    external: true
+
+services:
+  catalog-db:
+    container_name: catalog-db
+    image: postgres:16
+    environment:
+      POSTGRES_USER: cataloguser
+      POSTGRES_PASSWORD: catalogpass
+      POSTGRES_DB: catalogdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - catalog_data:/var/lib/postgresql/data
+    networks:
+      - eshop-on-web-net
+
+  catalog-api:
+    container_name: catalog-api
+    build: .
+    depends_on:
+      - catalog-db
+    environment:
+      DATABASE_URL: postgresql+asyncpg://cataloguser:catalogpass@catalog-db:5432/catalogdb
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    command: sh -c "./wait-for-postgres.sh"
+    networks:
+      - eshop-on-web-net
+
+  pgadmin:  
+    container_name: catalog-pgadmin
+    image: dpage/pgadmin4:7
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8080:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - eshop-on-web-net
+
+volumes:
+  catalog_data:
+  pgadmin_data:
+

@@ -7,6 +7,7 @@ using Blazored.LocalStorage;
 using BlazorShared;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
@@ -26,7 +27,9 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
+builder.Logging.SetMinimumLevel(LogLevel.Information);
 
 // Register HttpClient for IOrderServiceClient
 builder.Services.AddHttpClient<IOrderServiceClient, OrderServiceClient>(client =>
@@ -62,13 +65,27 @@ else{
     });
 }
 
+//authentication virkede ik i docker så prøver lige med denne
+if (builder.Environment.EnvironmentName == "Docker")
+{
+    builder.Services.AddDataProtection()
+        .PersistKeysToFileSystem(new DirectoryInfo("/keys"))
+        .SetApplicationName("eshopweb");
+}
+
+
 builder.Services.AddCookieSettings();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
         options.Cookie.HttpOnly = true;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+
+        // For Docker / local testing, use None
+        options.Cookie.SecurePolicy = builder.Environment.EnvironmentName == "Docker"
+            ? CookieSecurePolicy.None
+            : CookieSecurePolicy.Always;
+
         options.Cookie.SameSite = SameSiteMode.Lax;
     });
 
@@ -130,7 +147,7 @@ builder.Services.AddBlazoredLocalStorage();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddScoped<ToastService>();
 builder.Services.AddScoped<HttpService>();
-builder.Services.AddBlazorServices();
+builder.Services.AddBlazorServices(builder.Configuration);
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
@@ -216,7 +233,7 @@ app.MapControllerRoute("default", "{controller:slugify=Home}/{action:slugify=Ind
 app.MapRazorPages();
 app.MapHealthChecks("home_page_health_check", new HealthCheckOptions { Predicate = check => check.Tags.Contains("homePageHealthCheck") });
 app.MapHealthChecks("api_health_check", new HealthCheckOptions { Predicate = check => check.Tags.Contains("apiHealthCheck") });
-//endpoints.MapBlazorHub("/admin");
+//app.MapBlazorHub("/admin");
 app.MapFallbackToFile("index.html");
 
 app.Logger.LogInformation("LAUNCHING");
