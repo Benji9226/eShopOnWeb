@@ -46,25 +46,25 @@ export class CatalogItemStockService {
 
   /** Add stock to total */
   async restock(itemId: number, amount: number) {
-    const updated = await this.withLockedItem(itemId, async (stock, save) => {
+    await this.withLockedItem(itemId, async (stock, save) => {
       stock.total += amount;
       await save(stock);
       await this.publishEvent('restock.success', { itemId, total: stock.total });
     });
-    return updated;
   }
 
   /** Reserve stock for an order */
   async reserve(itemId: number, amount: number) {
     try {
-      const updated = await this.withLockedItem(itemId, async (stock, save) => {
+      await this.withLockedItem(itemId, async (stock, save) => {
         const available = stock.total - stock.reserved;
-        if (available < amount) throw new Error(`Not enough stock. Available: ${available}`);
+        if (available < amount) {
+          throw new Error(`Not enough stock. Available: ${available}`);
+        }
         stock.reserved += amount;
         await save(stock);
         await this.publishEvent('reserve.success', { itemId, reserved: stock.reserved });
       });
-      return updated;
     } catch (err: any) {
       await this.publishEvent('reserve.failed', { itemId, requested: amount, reason: err.message });
       throw err;
@@ -74,14 +74,15 @@ export class CatalogItemStockService {
   /** Confirm an order, deduct reserved stock */
   async confirm(itemId: number, amount: number) {
     try {
-      const updated = await this.withLockedItem(itemId, async (stock, save) => {
-        if (stock.reserved < amount) throw new Error(`Not enough reserved stock. Reserved: ${stock.reserved}`);
+      await this.withLockedItem(itemId, async (stock, save) => {
+        if (stock.reserved < amount) {
+          throw new Error(`Not enough reserved stock. Reserved: ${stock.reserved}`);
+        }
         stock.reserved -= amount;
         stock.total -= amount;
         await save(stock);
         await this.publishEvent('confirm.success', { itemId, total: stock.total });
       });
-      return updated;
     } catch (err: any) {
       await this.publishEvent('confirm.failed', { itemId, requested: amount, reason: err.message });
       throw err;
@@ -91,13 +92,12 @@ export class CatalogItemStockService {
   /** Cancel a reservation */
   async cancelReservation(itemId: number, amount: number) {
     try {
-      const updated = await this.withLockedItem(itemId, async (stock, save) => {
+      await this.withLockedItem(itemId, async (stock, save) => {
         if (stock.reserved < amount) throw new Error(`Cannot cancel more than reserved. Reserved: ${stock.reserved}`);
         stock.reserved -= amount;
         await save(stock);
         await this.publishEvent('cancel.success', { itemId, reserved: stock.reserved });
       });
-      return updated;
     } catch (err: any) {
       await this.publishEvent('cancel.failed', { itemId, requested: amount, reason: err.message });
       throw err;
