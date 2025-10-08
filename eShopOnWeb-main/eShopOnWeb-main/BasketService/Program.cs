@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using BasketService;
+using Microsoft.AspNetCore.Builder;
 using BasketService.Data;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -8,10 +10,12 @@ using Microsoft.OpenApi.Models;
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.AddConsole();
 
-//todo see if it can be done as config insted
 builder.Services.AddDbContext<BasketContext>(c =>
     //todo see if it can be done as config insted
-    c.UseNpgsql("Host=localhost;Port=5434;Database=basketdb;Username=basketuser;Password=basketpass;"));
+    c.UseNpgsql("Host=localhost;Port=5434;Database=basketdb;Username=basketuser;Password=basketpass;")
+);
+
+builder.Services.AddScoped<BasketRepository>();
 
 const string CORS_POLICY = "CorsPolicy";
 builder.Services.AddCors(options =>
@@ -27,6 +31,11 @@ builder.Services.AddCors(options =>
 
 
 builder.Services.AddControllers();
+
+builder.Services.AddLogging(logging => {
+    logging.AddConsole();
+    logging.AddDebug();
+});
 
 builder.Services.AddSwaggerGen(c =>
 {
@@ -57,9 +66,9 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-var app = builder.Build();
+builder.WebHost.UseUrls("http://localhost:5004");
 
-app.UseHttpsRedirection();
+var app = builder.Build();
 
 app.UseRouting();
 
