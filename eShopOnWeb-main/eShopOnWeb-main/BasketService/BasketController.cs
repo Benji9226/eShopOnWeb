@@ -29,27 +29,48 @@ public class BasketController(BasketRepository basketRepository) : ControllerBas
         basket.AddItem(addBasketItemDto.CatalogItemId, addBasketItemDto.Price, addBasketItemDto.Quantity);
         
         basketRepository.Update(basket);
-
-        return Ok(basket);
+        
+        return RedirectToAction("GetOrCreateBasket", new { buyerId = addBasketItemDto.Username });
     }
     
-    [HttpPut("setQuantities")]
-    public ActionResult<Basket> SetQuantities(UpdateQuantitiesDto dto)
+    [HttpPatch("setQuantities")]
+    public async Task<ActionResult<Basket>> SetQuantities(UpdateQuantitiesDto dto)
     {
-        var basket = basketRepository.Find(dto.BasketId);
+        var basket = await basketRepository.FindAsync(dto.BasketId);
         if (basket == null) return NotFound();
 
         foreach (var item in basket.Items)
         {
             if (dto.Quantities.TryGetValue(item.Id.ToString(), out var quantity))
             {
-                //todo logger if (_logger != null) _logger.LogInformation($"Updating quantity of item ID:{item.Id} to {quantity}.");
+                // todo: logger if (_logger != null) _logger.LogInformation($"Updating quantity of item ID:{item.Id} to {quantity}.");
                 item.SetQuantity(quantity);
             }
         }
         basket.RemoveEmptyItems();
-        basketRepository.Update(basket);
-        return basket;
+        await basketRepository.Update(basket);
+        return Ok(basket);
     }
     
+    [HttpPut(("transfer"))]
+    public async Task<ActionResult> TransferBasket(TransferDTO dto)
+    {
+        await basketRepository.TransferBasketAsync(dto.AnonymousId,  dto.UserName);
+
+        return Ok();
+    }
+
+    [HttpDelete("{basketId}")]
+    public async Task<ActionResult> DeleteBasket(int basketId)
+    {
+        var basket = await basketRepository.FindAsync(basketId);
+
+        if (basket != null)
+        {
+            await basketRepository.DeleteAsync(basket);
+
+        }
+
+        return NoContent();
+    }
 }

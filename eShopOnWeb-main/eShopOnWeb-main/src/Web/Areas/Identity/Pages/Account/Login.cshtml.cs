@@ -5,8 +5,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.eShopWeb.ApplicationCore.Interfaces;
 using Microsoft.eShopWeb.Infrastructure.Identity;
+using Microsoft.eShopWeb.Web.APIClients;
 
 namespace Microsoft.eShopWeb.Web.Areas.Identity.Pages.Account;
 
@@ -15,13 +15,13 @@ public class LoginModel : PageModel
 {
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly ILogger<LoginModel> _logger;
-    private readonly IBasketService _basketService;
+    private readonly IBasketClient _client;
 
-    public LoginModel(SignInManager<ApplicationUser> signInManager, ILogger<LoginModel> logger, IBasketService basketService)
+    public LoginModel(SignInManager<ApplicationUser> signInManager, ILogger<LoginModel> logger, IBasketClient client)
     {
         _signInManager = signInManager;
         _logger = logger;
-        _basketService = basketService;
+        _client = client;
     }
 
     [BindProperty]
@@ -111,7 +111,7 @@ public class LoginModel : PageModel
             if (Guid.TryParse(anonymousId, out var _))
             {
                 Guard.Against.NullOrEmpty(userName, nameof(userName));
-                await _basketService.TransferBasketAsync(anonymousId, userName);
+                await _client.TransferBasketAsync(anonymousId, userName);
             }
             Response.Cookies.Delete(Constants.BASKET_COOKIENAME);
         }

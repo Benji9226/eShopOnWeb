@@ -8,18 +8,23 @@ public class BasketRepository(BasketContext context)
 {
     public Basket GetOrCreateBasketByUsername(string buyerId)
     {
-        var basket =  context.Baskets
+        var basket = context.Baskets
             .Where(b => b.BuyerId == buyerId)
             .Include(b => b.Items)
             .FirstOrDefault();
 
-        return basket ?? CreateBasket(new Basket(buyerId));
+        if (basket == null)
+        {
+            basket =  CreateBasket(new Basket(buyerId)).Result; 
+        }
+
+        return basket;
     }
 
-    private Basket CreateBasket(Basket basket)
+    private async Task<Basket> CreateBasket(Basket basket)
     {
         var addedBasket = context.Baskets.Add(basket);
-        context.SaveChanges();
+        await context.SaveChangesAsync();
 
         return addedBasket.Entity;
     }
@@ -33,20 +38,48 @@ public class BasketRepository(BasketContext context)
     }
 
 
-    public void Update(Basket basket)
+    public async Task Update(Basket basket)
     {
         context.Baskets.Update(basket);
 
-        context.SaveChanges();
+        await context.SaveChangesAsync();
     }
 
-    public Basket? Find(int basketId)
+    public async Task DeleteAsync(Basket basket)
     {
-        var basket =  context.Baskets
+        context.Baskets.Remove(basket);
+        await context.SaveChangesAsync();
+    }
+
+    public async Task TransferBasketAsync(string anonymousId, string userName)
+    {
+        var anonymousBasket = await context.Baskets
+            .Where(b => b.BuyerId == anonymousId)
+            .Include(b => b.Items)
+            .FirstOrDefaultAsync();
+
+        if (anonymousBasket == null) return;
+
+        var userBasket = await context.Baskets
+                             .Where(b => b.BuyerId == userName)
+                             .Include(b => b.Items)
+                             .FirstOrDefaultAsync()
+                         ?? new Basket(userName);
+
+        foreach (var item in anonymousBasket.Items)
+        {
+            userBasket.AddItem(item.CatalogItemId, item.UnitPrice, item.Quantity);
+        }
+
+        _ = CreateBasket(userBasket);
+        _ = DeleteAsync(anonymousBasket);
+    }
+
+    public async Task<Basket?> FindAsync(int basketId)
+    {
+        return await context.Baskets
             .Where(b => b.Id == basketId)
             .Include(b => b.Items)
-            .FirstOrDefault();
-        
-        return basket;
+            .FirstOrDefaultAsync();
     }
 }
