@@ -1,0 +1,15 @@
+networks:
+  eshop-on-web-net:
+    external: true
+
+services:
+  gateway:
+    build: .
+    container_name: api-gateway
+    ports:
+      - "8090:8080"
+    networks:
+      - eshop-on-web-net
+    depends_on:
+      - catalog-api
+      - order
