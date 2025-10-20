@@ -6,7 +6,7 @@ namespace Microsoft.eShopWeb.Web.APIClients;
 
 public interface IBasketClient
 {
-    Task<BasketDTO> GetOrCreateBasketByBuyerId(string userName);
+    Task<BasketDTO> GetOrCreateBasketByBuyerId(string username);
     Task<int> CountTotalBasketItems(string username);
     Task<Result<BasketDTO>> SetQuantities(int basketId, Dictionary<string, int> quantities);
     Task<BasketDTO> AddItemToBasket(AddBasketItemDto addBasketItemDto);
@@ -26,9 +26,9 @@ public class BasketClient : IBasketClient
         _httpClient = httpClient;
     }
 
-    public Task<BasketDTO> GetOrCreateBasketByBuyerId(string userName)
+    public Task<BasketDTO> GetOrCreateBasketByBuyerId(string username)
     {
-        var result= _httpClient.GetFromJsonAsync<BasketDTO>(BaseUrl + userName);
+        var result= _httpClient.GetFromJsonAsync<BasketDTO>($"{BaseUrl}getOrCreate/{username}");
 
         return result;
     }

@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.eShopWeb;
+using Microsoft.eShopWeb.ApplicationCore.Clients;
 using Microsoft.eShopWeb.ApplicationCore.Contracts.Orders;
 using Microsoft.eShopWeb.ApplicationCore.Interfaces;
 using Microsoft.eShopWeb.ApplicationCore.Services;
@@ -39,6 +40,9 @@ builder.Services.AddHttpClient<IOrderServiceClient, OrderServiceClient>(client =
 
 // Register OrderService
 builder.Services.AddScoped<IOrderService, OrderService>();
+
+// Register BasketClient
+builder.Services.AddScoped<IBasketClient, BasketClient>();
 
 builder.Services.AddMediatR(cfg =>
 {

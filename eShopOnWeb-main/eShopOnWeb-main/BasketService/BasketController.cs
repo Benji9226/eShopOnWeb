@@ -8,7 +8,18 @@ namespace BasketService;
 [Route("/api/[controller]")]
 public class BasketController(BasketRepository basketRepository) : ControllerBase
 {
-    [HttpGet("{buyerId}")]
+    [HttpGet("{basketId}")]
+    public async Task<ActionResult<Basket>> GetBasket(int basketId)
+    {
+        var basket = await basketRepository.FindAsync(basketId);
+        if (basket == null)
+        {
+            return NotFound();
+        }
+        return Ok(basket);
+    }
+    
+    [HttpGet("getOrCreate/{buyerId}")]
     public ActionResult<Basket> GetOrCreateBasket(string buyerId)
     {
         var basket = basketRepository.GetOrCreateBasketByUsername(buyerId);

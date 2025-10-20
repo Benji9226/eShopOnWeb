@@ -82,4 +82,12 @@ public class BasketRepository(BasketContext context)
             .Include(b => b.Items)
             .FirstOrDefaultAsync();
     }
+
+    public async Task<Basket?> FindBasketByBuyerIdAsync(string buyerId)
+    {
+        return await context.Baskets
+            .Where(b => b.BuyerId == buyerId)
+            .Include(b => b.Items)
+            .FirstOrDefaultAsync();
+    }
 }
