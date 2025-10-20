@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { CatalogItemStockService } from './catalog-item-stock.service';
 import { CatalogItemStockConsumer } from './catalog-item-stock.consumer';
 import { CatalogItemStock } from './entities/catalog-item-stock.entity';
+import { TestStockController } from './catalog-item-rabbitmq-test-controller';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { CatalogItemStock } from './entities/catalog-item-stock.entity';
       connectionInitOptions: { wait: false },
     }),
   ],
+  controllers: [TestStockController],
   providers: [CatalogItemStockService, CatalogItemStockConsumer],
 })
 export class CatalogItemStockModule {}
