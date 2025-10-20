@@ -36,7 +36,9 @@ services:
       rabbitmq:
         condition: service_started
     networks:
-      - eshop-on-web-net
+      eshop-on-web-net:
+        aliases:
+          - order
     command: uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
 
   order-pgadmin:

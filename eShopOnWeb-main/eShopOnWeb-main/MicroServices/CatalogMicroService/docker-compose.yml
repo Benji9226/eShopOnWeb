@@ -30,7 +30,9 @@ services:
       - .:/app
     command: sh -c "./wait-for-postgres.sh"
     networks:
-      - eshop-on-web-net
+      eshop-on-web-net:
+        aliases:
+          - catalog-api
 
   catalog-pgadmin:  
     container_name: catalog-pgadmin
