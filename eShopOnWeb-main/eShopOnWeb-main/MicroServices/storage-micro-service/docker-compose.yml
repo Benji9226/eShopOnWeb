@@ -4,7 +4,7 @@ networks:
 services:
   storage_app:
     build: .
-    container_name: storage_app
+    container_name: storage-app
     depends_on:
       - storage_db
       - storage_rabbitmq
@@ -34,7 +34,7 @@ services:
 
   storage_rabbitmq:
     image: rabbitmq:3-management
-    container_name: storage_rabbitmq
+    container_name: storage-rabbitmq
     ports:
       - "5672:5672"
       - "15672:15672"
