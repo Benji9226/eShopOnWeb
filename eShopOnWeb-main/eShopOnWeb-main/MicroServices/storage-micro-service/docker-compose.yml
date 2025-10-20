@@ -2,12 +2,12 @@ networks:
   eshop-on-web-net:
     external: true
 services:
-  app:
+  storage_app:
     build: .
     container_name: storage_app
     depends_on:
-      - db
-      - rabbitmq
+      - storage_db
+      - storage_rabbitmq
     ports:
       - "3000:3000"
     environment:
@@ -20,10 +20,9 @@ services:
     networks:
       - eshop-on-web-net
 
-  db:
+  storage_db:
     image: postgres:16
-    container_name: storage-db
-    restart: always
+    container_name: storage_db
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -33,7 +32,7 @@ services:
     networks:
       - eshop-on-web-net
 
-  rabbitmq:
+  storage_rabbitmq:
     image: rabbitmq:3-management
     container_name: storage_rabbitmq
     ports:
@@ -42,8 +41,8 @@ services:
     networks:
       - eshop-on-web-net
 
-  pgadmin:  
-    container_name: storage-pgadmin
+  storage_pgadmin:  
+    container_name: storage_pgadmin
     image: dpage/pgadmin4:7
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@admin.com
