@@ -21,7 +21,9 @@ public class OrderServiceClient : IOrderServiceClient
             throw new InvalidOperationException("Missing configuration for baseUrls:ordersMicroservice");
         }
 
-        httpClient.BaseAddress = new Uri(baseUrl.TrimEnd('/'));
+        if (!baseUrl.EndsWith("/")) baseUrl += "/";
+
+        httpClient.BaseAddress = new Uri(baseUrl);
         _httpClient = httpClient;
     }
 
