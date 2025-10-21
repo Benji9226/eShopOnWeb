@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.eShopWeb.ApplicationCore.Clients;
 using Microsoft.eShopWeb.ApplicationCore.Contracts.Orders;
 using Microsoft.eShopWeb.ApplicationCore.Entities;
 using Microsoft.eShopWeb.ApplicationCore.Entities.OrderAggregate;

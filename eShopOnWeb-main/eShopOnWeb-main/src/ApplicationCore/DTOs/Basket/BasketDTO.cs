@@ -1,4 +1,6 @@
-﻿namespace Microsoft.eShopWeb.Web.DTOs;
+﻿using System.Collections.Generic;
+
+namespace Microsoft.eShopWeb.ApplicationCore.DTOs.Basket;
 
 public class BasketDTO
 {

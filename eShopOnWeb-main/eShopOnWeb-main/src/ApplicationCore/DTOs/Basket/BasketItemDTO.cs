@@ -1,4 +1,4 @@
-﻿namespace Microsoft.eShopWeb.ApplicationCore.DTOs;
+﻿namespace Microsoft.eShopWeb.ApplicationCore.DTOs.Basket;
 
 public class BasketItemDTO
 {

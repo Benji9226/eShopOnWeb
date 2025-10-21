@@ -1,4 +1,4 @@
-﻿using Microsoft.eShopWeb.Web.DTOs;
+﻿using Microsoft.eShopWeb.ApplicationCore.DTOs.Basket;
 using Microsoft.eShopWeb.Web.Pages.Basket;
 
 namespace Microsoft.eShopWeb.Web.Interfaces;
