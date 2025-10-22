@@ -10,10 +10,12 @@ using Microsoft.OpenApi.Models;
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.AddConsole();
 
-builder.Services.AddDbContext<BasketContext>(c =>
-    //todo see if it can be done as config insted
-    c.UseNpgsql("Host=localhost;Port=5434;Database=basketdb;Username=basketuser;Password=basketpass;")
-);
+var connString =
+    builder.Configuration.GetConnectionString("Default")
+    ?? Environment.GetEnvironmentVariable("DATABASE_URL")
+    ?? "Host=basket-db;Port=5432;Database=basketdb;Username=basketuser;Password=basketpass;";
+    
+builder.Services.AddDbContext<BasketContext>(c => c.UseNpgsql(connString));
 
 builder.Services.AddScoped<BasketRepository>();
 
@@ -65,8 +67,6 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 });
-
-builder.WebHost.UseUrls("http://localhost:5004");
 
 var app = builder.Build();
 
