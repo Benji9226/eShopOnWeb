@@ -16,6 +16,23 @@ services:
       - basket_data:/var/lib/postgresql/data
     networks:
       - eshop-on-web-net
+        
+  basket-api:
+    container_name: basket-api
+    build: .
+    depends_on:
+      - basket-db
+    environment:
+      DATABASE_URL: postgresql+asyncpg://basketuser:basketpass@basket-db:5432/basketdb
+      ASPNETCORE_URLS: http://+:5004
+    ports:
+      - "5004:5004"
+    volumes:
+      - .:/app
+    command: sh -c "./wait-for-postgres.sh && dotnet BasketService.dll"
+    networks:
+      - eshop-on-web-net     
+    
 
 volumes:
   basket_data:

@@ -16,6 +16,6 @@
     <None Include=".dockerignore" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="MicroServices\BasketMicroService\" />
+    <Folder Include="MicroServices\" />
   </ItemGroup>
 </Project>
