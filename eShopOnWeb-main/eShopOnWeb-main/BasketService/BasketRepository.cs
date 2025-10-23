@@ -6,12 +6,12 @@ namespace BasketService;
 
 public class BasketRepository(BasketContext context)
 {
-    public Basket GetOrCreateBasketByUsername(string buyerId)
+    public async Task<Basket> GetOrCreateBasketByUsername(string buyerId)
     {
-        var basket = context.Baskets
+        var basket = await context.Baskets
             .Where(b => b.BuyerId == buyerId)
             .Include(b => b.Items)
-            .FirstOrDefault();
+            .FirstOrDefaultAsync();
 
         if (basket == null)
         {

@@ -20,9 +20,9 @@ public class BasketController(BasketRepository basketRepository) : ControllerBas
     }
     
     [HttpGet("getOrCreate/{buyerId}")]
-    public ActionResult<Basket> GetOrCreateBasket(string buyerId)
+    public async Task<ActionResult<Basket>> GetOrCreateBasket(string buyerId)
     {
-        var basket = basketRepository.GetOrCreateBasketByUsername(buyerId);
+        var basket = await basketRepository.GetOrCreateBasketByUsername(buyerId);
         return Ok(basket);
     }
     
@@ -34,12 +34,12 @@ public class BasketController(BasketRepository basketRepository) : ControllerBas
     }
     
     [HttpPost("addItem")]
-    public ActionResult<Basket> AddItemToBasket(AddBasketItemDto addBasketItemDto)
+    public async Task<ActionResult<Basket>> AddItemToBasket(AddBasketItemDto addBasketItemDto)
     {
-        var basket = basketRepository.GetOrCreateBasketByUsername(addBasketItemDto.Username);
+        var basket = await basketRepository.GetOrCreateBasketByUsername(addBasketItemDto.Username);
         basket.AddItem(addBasketItemDto.CatalogItemId, addBasketItemDto.Price, addBasketItemDto.Quantity);
         
-        basketRepository.Update(basket);
+        await basketRepository.Update(basket);
         
         return RedirectToAction("GetOrCreateBasket", new { buyerId = addBasketItemDto.Username });
     }
