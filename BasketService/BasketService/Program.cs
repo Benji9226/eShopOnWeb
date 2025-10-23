@@ -1,23 +1,21 @@
 ﻿using BasketService;
-using Microsoft.AspNetCore.Builder;
 using BasketService.Data;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.AddConsole();
 
 var connString =
-    builder.Configuration.GetConnectionString("Default")
-    ?? Environment.GetEnvironmentVariable("DATABASE_URL")
-    ?? "Host=basket-db;Port=5432;Database=basketdb;Username=basketuser;Password=basketpass;";
-    
-builder.Services.AddDbContext<BasketContext>(c => c.UseNpgsql(connString));
+    builder.Configuration.GetConnectionString("Default");
+
+builder.Services.AddDbContext<BasketContext>(c =>
+    c.UseNpgsql(connString)
+);
 
 builder.Services.AddScoped<BasketRepository>();
+
+
 
 const string CORS_POLICY = "CorsPolicy";
 builder.Services.AddCors(options =>
@@ -34,7 +32,8 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddControllers();
 
-builder.Services.AddLogging(logging => {
+builder.Services.AddLogging(logging =>
+{
     logging.AddConsole();
     logging.AddDebug();
 });
@@ -81,13 +80,17 @@ app.UseSwagger();
 
 // Enable middleware to serve swagger-ui (HTML, JS, CSS, etc.), 
 // specifying the Swagger JSON endpoint.
-app.UseSwaggerUI(c =>
-{
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
-});
+app.UseSwaggerUI(c => { c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1"); });
 
 app.MapControllers();
 
 app.Logger.LogInformation("LAUNCHING BasketService");
+
+// Apply EF Core migrations at startup
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<BasketContext>();
+    db.Database.Migrate();
+}
 
 app.Run();

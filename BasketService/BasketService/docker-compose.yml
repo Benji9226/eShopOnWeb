@@ -24,7 +24,5 @@ services:
       ConnectionStrings__Default: Host=basket-db;Port=5432;Database=basketdb;Username=basketuser;Password=basketpass
     ports: ["5004:5004"]
   
-    
-
 volumes:
   basket_data:
