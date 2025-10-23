@@ -30,9 +30,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="ApplicationCore\Entities\BasketTests\" />
     <Folder Include="ApplicationCore\Helpers\" />
-    <Folder Include="ApplicationCore\Services\BasketServiceTests\" />
   </ItemGroup>
 
 </Project>
