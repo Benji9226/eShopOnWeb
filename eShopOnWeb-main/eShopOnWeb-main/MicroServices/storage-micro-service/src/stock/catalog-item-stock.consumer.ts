@@ -2,6 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { RabbitSubscribe, RabbitRPC } from '@golevelup/nestjs-rabbitmq';
 import { CatalogItemStockService } from './catalog-item-stock.service';
 
+interface ReserveItem {
+  itemId: number;
+  amount: number;
+}
+
 @Injectable()
 export class CatalogItemStockConsumer {
   constructor(private readonly stockService: CatalogItemStockService) {}
@@ -30,14 +35,17 @@ export class CatalogItemStockConsumer {
     routingKey: 'catalog_item_stock.reserve',
     queue: 'catalog_item_stock_reserve_rpc_queue',
   })
-  async handleReserveRpc(msg: { itemId: number; amount: number }) {
+  async handleReserveRpc(msg: ReserveItem[] ) {
     console.log('Reserve RPC request received:', msg);
+
     try {
-      await this.stockService.reserve(msg.itemId, msg.amount);
-      console.log(`Reserve success: itemId=${msg.itemId}, amount=${msg.amount}`);
+      for (const item of msg) {
+        await this.stockService.reserve(item.itemId, item.amount);
+        console.log(`Reserve success: itemId=${item.itemId}, amount=${item.amount}`);
+      }
       return { success: true };
     } catch (err: any) {
-      console.error(`Reserve failed: itemId=${msg.itemId}, reason=${err.message}`);
+      console.error(`Reserve failed: reason=${err.message}`);
       return { success: false, reason: err.message };
     }
   }

@@ -20,25 +20,36 @@ public class CheckoutModel : PageModel
     private string? _username = null;
     private readonly IBasketViewModelService _basketViewModelService;
     private readonly IAppLogger<CheckoutModel> _logger;
+    private readonly IRabbitMqService _rabbitMqService;
 
     public CheckoutModel(IBasketService basketService,
         IBasketViewModelService basketViewModelService,
         SignInManager<ApplicationUser> signInManager,
         IOrderService orderService,
-        IAppLogger<CheckoutModel> logger)
+        IAppLogger<CheckoutModel> logger,
+        IRabbitMqService rabbitMqService)
     {
         _basketService = basketService;
         _signInManager = signInManager;
         _orderService = orderService;
         _basketViewModelService = basketViewModelService;
         _logger = logger;
+        _rabbitMqService = rabbitMqService;
     }
 
     public BasketViewModel BasketModel { get; set; } = new BasketViewModel();
 
-    public async Task OnGet()
+    public async Task<IActionResult> OnGet()
     {
         await SetBasketModelAsync();
+
+        var response = await _rabbitMqService.ReserveBasketAsync(BasketModel.Items);
+        if (!response.success)
+        {
+            return RedirectToPage("/Basket/Index");
+        }
+
+        return Page();
     }
 
     public async Task<IActionResult> OnPost(IEnumerable<BasketItemViewModel> items)
