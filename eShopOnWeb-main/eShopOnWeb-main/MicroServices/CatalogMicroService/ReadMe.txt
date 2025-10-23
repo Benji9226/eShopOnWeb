@@ -1,6 +1,24 @@
 -----------
+----------- run with docker
+docker compose:
+
+docker network create eshop-on-web-net
+
+docker compose build
+
+docker compose up -d
+
+or for combined up:
+
+docker compose up --build -d
+
+docker compose logs -f catalog-api
+
+docker compose down
 -----------
-initial setup for new user:
+
+-----------
+initial setup for new user to run it locally:
 
 Inside the project folder
 
@@ -15,33 +33,28 @@ Inside the project folder
 3. install dependencies in venv:
     pip install -r requirements.txt
 
-4. set up .env file with:
-    API_PORT=8000
-    DATABASE_URL=postgresql+asyncpg://cataloguser:catalogpass@catalog-db:5432/catalogdb
-        - DATABASE_URL will be according to the local setup, i use a docker container. this should probably get started in this app somehow with a docker compose or something.
+4. set up database with docker:
+    docker volume create catalog_data
 
-5. update migrations:
-    alembic upgrade head
+    docker run -d `
+        --name catalog-db-local `
+        -e POSTGRES_USER=cataloguser `
+        -e POSTGRES_PASSWORD=catalogpass `
+        -e POSTGRES_DB=catalogdb `
+        -v catalog_data:/var/lib/postgresql/data `
+        -p 5432:5432 `
+        postgres:16
+
+5. set up .env file with:
+    API_PORT=8000
+    DATABASE_URL=postgresql+asyncpg://cataloguser:catalogpass@localhost:5432/catalogdb
+
+5. alembic upgrade head
 
 6. start app:
-    use docker compose
+    uvicorn app.main:app --port 8000 --reload
 -----------
 
------------
-docker compose:
-
-docker compose build
-
-docker compose up -d
-
-or for combined up:
-
-docker compose up --build -d
-
-docker compose logs -f catalog-api
-
-docker compose down
------------
 
 -----------
 install dependencies:
