@@ -2,6 +2,9 @@ networks:
   eshop-on-web-net:
     external: true
 
+volumes:
+  catalog_data:
+
 services:
   catalog-db:
     image: postgres:16
@@ -13,25 +16,30 @@ services:
       - catalog_data:/var/lib/postgresql/data
     networks:
       - eshop-on-web-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cataloguser -d catalogdb"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
 
   catalog-api:
-    build: .
+    build:
+      context: .    
+      dockerfile: Dockerfile
     depends_on:
-      - catalog-db
+      catalog-db:
+        condition: service_healthy
     environment:
       API_PORT: 8000
       DATABASE_URL: postgresql+asyncpg://cataloguser:catalogpass@catalog-db:5432/catalogdb
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+    working_dir: /app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000  
     ports:
       - "8000:8000"
-    volumes:
-      - .:/app
-    command: sh -c "./wait-for-postgres.sh"
     networks:
       eshop-on-web-net:
-        aliases:
-          - catalog-api
-
-volumes:
-  catalog_data:
-  pgadmin_data:
+        aliases: [catalog-api]
 
