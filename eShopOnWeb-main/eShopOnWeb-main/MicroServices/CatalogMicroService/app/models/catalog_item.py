@@ -4,9 +4,11 @@ from typing import Optional
 from datetime import datetime
 from app.models.catalog_type import CatalogType
 from app.models.catalog_brand import CatalogBrand
-from app.models.base_entity import BaseEntity
 
-class CatalogItem(BaseEntity, table=True):
+
+class CatalogItem(SQLModel, table=True):
+    id: int = Field(default=None, primary_key=True)
+
     name: str = Field(max_length=50, nullable=False)
     description: Optional[str] = None
     price: float = Field(sa_column=Column(DECIMAL(18, 2), nullable=False))
