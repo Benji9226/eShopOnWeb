@@ -1,0 +1,5 @@
+include:
+  - eShopOnWeb-main/eShopOnWeb-main/docker-compose.yml
+  - eShopOnWeb-main/eShopOnWeb-main/MicroServices/OrderMicroService/order-service/docker-compose.yml
+  - eShopOnWeb-main/eShopOnWeb-main/MicroServices/CatalogMicroService/docker-compose.yml
+  - BasketService/BasketService/docker-compose.yml
