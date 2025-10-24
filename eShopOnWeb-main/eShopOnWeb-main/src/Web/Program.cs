@@ -24,6 +24,7 @@ using Microsoft.eShopWeb.Web;
 using Microsoft.eShopWeb.Web.Configuration;
 using Microsoft.eShopWeb.Web.Features.MyOrders;
 using Microsoft.eShopWeb.Web.HealthChecks;
+using Microsoft.eShopWeb.Web.Hubs;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 
@@ -110,6 +111,7 @@ builder.Configuration.AddEnvironmentVariables();
 builder.Services.AddCoreServices(builder.Configuration);
 builder.Services.AddWebServices(builder.Configuration);
 
+builder.Services.AddSignalR();
 
 // Add memory cache services
 builder.Services.AddMemoryCache();
@@ -239,13 +241,14 @@ app.UseCookiePolicy();
 app.UseAuthentication();
 app.UseAuthorization();
 
-
 app.MapControllerRoute("default", "{controller:slugify=Home}/{action:slugify=Index}/{id?}");
 app.MapRazorPages();
 app.MapHealthChecks("home_page_health_check", new HealthCheckOptions { Predicate = check => check.Tags.Contains("homePageHealthCheck") });
 app.MapHealthChecks("api_health_check", new HealthCheckOptions { Predicate = check => check.Tags.Contains("apiHealthCheck") });
 //app.MapBlazorHub("/admin");
 app.MapFallbackToFile("index.html");
+
+app.MapHub<StockHub>("/stockhub");
 
 app.Logger.LogInformation("LAUNCHING");
 app.Run();

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { RabbitSubscribe, RabbitRPC } from '@golevelup/nestjs-rabbitmq';
 import { CatalogItemStockService } from './catalog-item-stock.service';
 
-interface ReserveItem {
+export interface Item {
   itemId: number;
   amount: number;
 }
@@ -11,76 +11,73 @@ interface ReserveItem {
 export class CatalogItemStockConsumer {
   constructor(private readonly stockService: CatalogItemStockService) {}
 
-  // Restock an item (async)
   @RabbitSubscribe({
     exchange: 'catalog_item_stock.exchange',
     routingKey: 'catalog_item_stock.restock',
     queue: 'catalog_item_stock_restock_queue',
   })
-  async handleRestock(msg: { itemId: number; amount: number }) {
+  async handleRestock(msg: Item[]) {
     try {
       console.log('Restock event received:', msg);
-      await this.stockService.restock(msg.itemId, msg.amount);
-      console.log(`Restock success: itemId=${msg.itemId}, amount=${msg.amount}`);
+      await this.stockService.restockAtomic(msg);
+      console.log('Restock batch success');
     } catch (err: any) {
-      console.error(
-        `Restock failed: itemId=${msg.itemId}, amount=${msg.amount}, reason=${err.message}`,
-      );
+      console.error(`Restock batch failed: ${err.message}`);
     }
   }
 
-  // Reserve an item (synchronous RPC)
+  @RabbitRPC({
+    exchange: 'catalog_item_stock.exchange',
+    routingKey: 'catalog_item_stock.getall',
+    queue: 'catalog_item_stock_getall_queue',
+  })
+  public async handleGetAll(msg: any): Promise<Item[]> {
+    return this.stockService.getFullStock();
+  }
+
   @RabbitRPC({
     exchange: 'catalog_item_stock.exchange',
     routingKey: 'catalog_item_stock.reserve',
     queue: 'catalog_item_stock_reserve_rpc_queue',
   })
-  async handleReserveRpc(msg: ReserveItem[] ) {
+  async handleReserveRpc(msg: Item[]) {
     console.log('Reserve RPC request received:', msg);
-
     try {
-      for (const item of msg) {
-        await this.stockService.reserve(item.itemId, item.amount);
-        console.log(`Reserve success: itemId=${item.itemId}, amount=${item.amount}`);
-      }
+      await this.stockService.reserveAtomic(msg);
       return { success: true };
     } catch (err: any) {
-      console.error(`Reserve failed: reason=${err.message}`);
+      console.error(`Reserve batch failed: ${err.message}`);
       return { success: false, reason: err.message };
     }
   }
 
-  // Confirm an order (async)
   @RabbitSubscribe({
     exchange: 'catalog_item_stock.exchange',
     routingKey: 'catalog_item_stock.confirm',
     queue: 'catalog_item_stock_confirm_queue',
   })
-  async handleConfirm(msg: { itemId: number; amount: number }) {
+  async handleConfirm(msg: Item[]) {
     try {
-      console.log('Confirm event received:', msg);
-      await this.stockService.confirm(msg.itemId, msg.amount);
-      console.log(`Confirm success: itemId=${msg.itemId}, amount=${msg.amount}`);
+      console.log('Confirm Order event received:', msg);
+      await this.stockService.confirmAtomic(msg);
+      console.log('Confirm batch success');
     } catch (err: any) {
-      console.error(`Confirm failed: ${err.message}`);
+      console.error(`Confirm batch failed: ${err.message}`);
     }
   }
 
-  // Cancel a reservation (async)
   @RabbitSubscribe({
     exchange: 'catalog_item_stock.exchange',
     routingKey: 'catalog_item_stock.cancel',
     queue: 'catalog_item_stock_cancel_queue',
   })
-  async handleCancel(msg: { itemId: number; amount: number }) {
+  async handleCancel(msg: Item[]) {
     try {
       console.log('Cancel Reservation event received:', msg);
-      await this.stockService.cancelReservation(msg.itemId, msg.amount);
-      console.log(`Cancel success: itemId=${msg.itemId}, amount=${msg.amount}`);
+      await this.stockService.cancelAtomic(msg);
+      console.log('Cancel batch success');
     } catch (err: any) {
-      console.error(
-        `Cancel failed: itemId=${msg.itemId}, amount=${msg.amount}, reason=${err.message}`,
-      );
+      console.error(`Cancel batch failed: ${err.message}`);
     }
   }
 }
