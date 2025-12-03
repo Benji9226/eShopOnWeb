@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Spørgsmål 3 - Teststrategier & Message Transformation</title>
+  <title>Spørgsmål 3 - Teststrategier & Message Transformation (Præsentation)</title>
   <style>
     :root{ --accent:#1a5490; --accent-2:#2e7db5; --muted:#6b7280; --card:#ffffff }
     html,body{height:100%}
@@ -24,6 +24,8 @@
     .toc a:hover{background:#eef6ff}
     .meta{font-size:0.95em;color:var(--muted)}
     .key{background:#fff8e6;border-left:4px solid #f6c84c;padding:10px;border-radius:6px;margin-top:10px}
+    .presenter{margin-top:10px;padding:10px;background:#fbfdff;border:1px solid #e6f0fb;border-radius:6px}
+    .time{font-weight:600;color:#0b5fa8}
     footer{margin-top:20px;color:var(--muted);font-size:0.95em}
   </style>
 </head>
@@ -31,151 +33,155 @@
   <header>
     <div>
       <h1 id="top">Spørgsmål 3 — Teststrategier & Message Transformation</h1>
-      <div class="meta">Kort, handlingsorienteret gennemgang med konkrete repo-eksempler</div>
+      <div class="meta">Præsentation: 10–15 minutter — handlingsorienteret og med repo-eksempler</div>
     </div>
-    <div class="meta">Estimeret præsentationstid: 10–15 min</div>
+    <div class="meta">Mål: Forklar hvordan og hvor du tester transformationslogik i et microservice-projekt</div>
   </header>
 
   <section class="slide toc">
-    <h2>Indholdsfortegnelse</h2>
+    <h2>Quick plan & tidsfordeling</h2>
     <ul>
-      <li><a href="#testtyper">Testtyper: Unit / Integration / E2E</a></li>
-      <li><a href="#struktur">Struktur i semesterprojekt</a></li>
-      <li><a href="#repoeksempler">Concrete repo-eksempler</a></li>
-      <li><a href="#transformation">Hvad er Message Transformation?</a></li>
-      <li><a href="#placering">Hvor placere transformation?</a></li>
-      <li><a href="#strategier">Teststrategier for messaging</a></li>
-      <li><a href="#eksempel">Eksempeltest — Messaging (pseudo)</a></li>
-      <li><a href="#ci">Test automation & CI</a></li>
-      <li><a href="#opsummering">Opsummering & Best Practices</a></li>
+      <li><span class="time">1 min</span> — Introduktion & mål</li>
+      <li><span class="time">2 min</span> — Testtyper (unit, integration, e2e)</li>
+      <li><span class="time">2 min</span> — Struktur og repo-praksis</li>
+      <li><span class="time">3 min</span> — Message Transformation (hvad og hvor)</li>
+      <li><span class="time">3 min</span> — Teststrategier for messaging + konkret test</li>
+      <li><span class="time">2 min</span> — CI & opsummering</li>
     </ul>
+    <div class="note">Total ≈ 13 minutter — god ramme for 10–15 min</div>
+  </section>
+
+  <section class="slide" id="intro">
+    <h2>Intro & mål</h2>
+    <p>Forklar kort: hvorfor teststrategier og message transformations er vigtige i et distribueret system.</p>
+    <div class="presenter"><strong>Speaker notes (1 min):</strong>
+      <ul>
+        <li>Sig hvem du er og formålet: sikre data‑og kontrakt‑integritet i microservices.</li>
+        <li>Giv ét konkret problem: producer og consumer har forskelligt schema → transformation nødvendig.</li>
+      </ul>
+    </div>
   </section>
 
   <section class="slide" id="testtyper">
-    <h2>Testtyper — kort</h2>
-    <h3>Unit tests</h3>
-    <p>Tester en enkelt funktion eller klasse isoleret. Hurtige, deterministiske. Bruges til at sikre korrekthed af små enheder — fx validering, mapping eller transformation-funktioner.</p>
-    <div class="key"><strong>Key:</strong> Hold unit tests små og hurtige; mock eksterne afhængigheder.</div>
-    <h3>Integration tests</h3>
-    <p>Tester samspillet mellem komponenter (fx repository ↔ database, service ↔ broker). Brug ephemeral resources (SQLite, Testcontainers eller lightweight docker-compose) så tests er realistiske men reproducible.</p>
-    <div class="key"><strong>Key:</strong> Verificer contracts og dataflow — brug faktiske netværkskald mod containeriserede dependency-mocks.</div>
-    <h3>End-to-end (E2E)</h3>
-    <p>Tester hele flowet fra klient til persistence for at sikre business-funktionalitet. Tungere og køres typisk sjældnere (nightly eller gated runs).</p>
+    <h2>Testtyper — kort (Unit / Integration / E2E)</h2>
+    <ul>
+      <li><strong>Unit:</strong> test små rene funktioner (fx mapping)</li>
+      <li><strong>Integration:</strong> test mod database eller broker (ephemeral)</li>
+      <li><strong>E2E:</strong> test hele flowet (API -> broker -> consumer -> DB)</li>
+    </ul>
+    <div class="presenter"><strong>Speaker notes (2 min):</strong>
+      <ul>
+        <li>Forklar kort formål og eksempler: transformationsfunktioner som unit tests.</li>
+        <li>Integration: brug docker/testcontainers (repo har eksempler i <code>MicroServices/CatalogMicroService/tests</code>).</li>
+      </ul>
+    </div>
   </section>
 
   <section class="slide" id="struktur">
-    <h2>Struktur i semesterprojekt</h2>
-    <p>Praktisk strategi i et multi-service projekt:</p>
+    <h2>Struktur og repo-praksis</h2>
     <ul>
-      <li>Hver service ejer sine unit tests (kør ofte lokalt).</li>
-      <li>Integration tests køres i CI (brug test-DB eller ephemeral containers — Testcontainers anbefales).</li>
-      <li>E2E tests kører i trimmed Docker Compose eller separat testmiljø.</li>
+      <li>Hver service ejer sine tests (unit + integration)</li>
+      <li>CI kører integration tests i containeriseret miljø</li>
     </ul>
-    <div class="note">Eksempler i repo: Python pytest fixtures i <code>MicroServices/CatalogMicroService/tests/conftest.py</code>, xUnit i <code>eShopOnWeb-main/.../tests/UnitTests</code>, Jest for NestJS i <code>storage-micro-service</code>.</div>
-  </section>
-
-  <section class="slide" id="repoeksempler">
-    <h2>Concrete repo-eksempler</h2>
-    <ul>
-      <li><strong>CatalogMicroService (Python)</strong> — <code>MicroServices/CatalogMicroService/tests/conftest.py</code> opretter en test-SQLite eller bruger Testcontainers; kør <code>pytest</code>. Fixture-eksempel: database-seeding og transactional rollback.</li>
-      <li><strong>OrderMicroService (Python)</strong> — lignende mønstre; brug fixtures til at mocke eksterne APIs og ephemeral RabbitMQ.</li>
-      <li><strong>Storage (NestJS)</strong> — kør <code>npm test</code> (Jest); mock services med dependency injection for hurtige unit tests.</li>
-      <li><strong>.NET</strong> — <code>dotnet test</code> i <code>tests/UnitTests</code>; integration mod SQL Edge eller containeriseret SQL i CI.</li>
-    </ul>
-    <div class="note">CI: se <code>.github/workflows/build-and-test.yml</code> — kører test-suites og bygger Docker-billeder. Brug miljøvariabler og secrets for credentials i CI.</div>
+    <div class="presenter"><strong>Speaker notes (2 min):</strong>
+      <ul>
+        <li>Vis konkrete filer: <code>MicroServices/CatalogMicroService/tests/conftest.py</code> (pytest fixtures), <code>.github/workflows/build-and-test.yml</code> (CI job).</li>
+        <li>Siger: "Når I skriver transformer-funktioner, placér unit tests ved siden af modulet — integration tests i tests-folder."</li>
+      </ul>
+    </div>
   </section>
 
   <section class="slide" id="transformation">
     <h2>Hvad er Message Transformation?</h2>
-    <p>Message Transformation ændrer et message-format for at gøre det kompatibelt mellem systemer. Typiske transformationer:</p>
+    <p>Kort: ændring af payload så producenter og forbrugere kan forstå hinanden.</p>
     <ul>
-      <li>Feltnavn konvertering (camelCase ↔ snake_case).</li>
-      <li>Schema-opgradering (v1 → v2) med migrering af felter.</li>
-      <li>Berigelse (tilføj metadata) eller redigering (fjern interne felter).</li>
+      <li>Konvertering af feltnavne</li>
+      <li>Schema-opgradering (v1 → v2)</li>
+      <li>Berigelse / fjernelse af interne felter</li>
     </ul>
-    <div class="note">I eShopOnWeb kan et <code>OrderCreatedEvent</code> indeholde interne felter; en transformer kan fjerne disse før consumer-evaluering for at mindske coupling.</div>
-    <div class="key"><strong>Tip:</strong> Hold transformationslogikken testbar som rene funktioner (enkelt ansvar) så unit tests nemt kan validere mappings.</div>
-  </section>
-
-  <section class="slide" id="placering">
-    <h2>Hvor placere transformation?</h2>
-    <ul>
-      <li><strong>Producer-side</strong>: Producer sender consumer-friendly format — enkelt at versionere, men kræver producent-ansvar.</li>
-      <li><strong>Broker-side / middleware</strong>: Gateway eller dedikeret transformer-service (centraliseret og genbrugeligt).</li>
-      <li><strong>Consumer-side</strong>: Consumer transformerer lokalt — fleksibelt, men kan føre til duplikation.</li>
-    </ul>
-    <div class="note">Overvej ownership, performance og hvor ofte skemaer ændres. Til hyppige ændringer kan middleware være fordelagtigt.</div>
+    <div class="presenter"><strong>Speaker notes (3 min):</strong>
+      <ul>
+        <li>Giv konkret eksempel fra repo: producer af order event (se <code>src/Infrastructure/RabbitMQ/RabbitMqService.cs</code> for patterns) og hvordan en transformer fjerner interne felter før consumer.</li>
+        <li>Forklar trade-offs: producer-side vs middleware vs consumer-side transformation.</li>
+      </ul>
+    </div>
   </section>
 
   <section class="slide" id="strategier">
     <h2>Teststrategier for messaging</h2>
-    <ol>
-      <li><strong>Unit tests</strong>: Test transformationslogik isoleret (f.eks. <code>transform_v1_to_v2(payload)</code>). Mock broker-klienten.</li>
-      <li><strong>Integration tests</strong>: Brug ephemeral RabbitMQ (Docker/Testcontainers) for at verificere publish/consume og transformation i en pipeline.</li>
-      <li><strong>Contract tests</strong>: Consumer-driven contracts (Pact eller schema registry) sikrer kompatibilitet mellem producenter og forbrugere.</li>
-      <li><strong>E2E</strong>: Kør hele flow (API → publish → transform → consume → DB) og valider end-state i en isoleret testmiljø.
-      </li>
-    </ol>
-    <div class="note">Forslag: Kør integrationstest i CI som en separat job, brug retries/cleanup for flakiness, og gem relevante logs for debugging.</div>
+    <ul>
+      <li>Unit: test mapping/transform funktioner (hurtige)</li>
+      <li>Integration: ephemeral RabbitMQ + test flow</li>
+      <li>Contract tests: Pact eller schema registry</li>
+      <li>E2E: valider end-state i DB</li>
+    </ul>
+    <div class="presenter"><strong>Speaker notes (3 min):</strong>
+      <ul>
+        <li>Walkthrough: hvordan skrive en integrationstest der starter en rabbitmq-container (brug docker compose eller Testcontainers).</li>
+        <li>Referér til repo: kig i <code>MicroServices/CatalogMicroService/tests</code> for fixtures; i .NET delen kan <code>src/Infrastructure/RabbitMQ/RabbitMqService.cs</code> illustrere publicering.</li>
+      </ul>
+    </div>
   </section>
 
   <section class="slide" id="eksempel">
-    <h2>Eksempeltest — Messaging integration (pseudo)</h2>
+    <h2>Konkrekt test-eksempel (walkthrough)</h2>
     <pre><code># pseudo pytest
 def test_order_event_transformation(rabbitmq_container):
-    # arrange
+    # arrange: publish v1
     publish(queue='orders.in', body=ORDER_V1_JSON)
 
-    # act
+    # act: consumer receives transformed v2
     msg = consume(queue='orders.out', timeout=5)
 
-    # assert
+    # assert: check transformation
     assert msg['amount'] == 1000
-    assert 'internal_flag' not in msg  # fjernet af transformer
+    assert 'internal_flag' not in msg
     assert msg['schema_version'] == 'v2'
 </code></pre>
-    <p class="note">Flow: start ephemeral broker (docker) → publish → transformer-service/process → consume → assert end-state i test.</p>
-    <div class="key"><strong>Råd:</strong> Brug idempotent publish og clean-up mellem tests; kør med korte timeouts og giv gode fejl-logs.</div>
+    <div class="presenter"><strong>Speaker notes (3 min):</strong>
+      <ul>
+        <li>Gennemgå arrange/act/assert kort — fremhæv hvorfor ephemeral broker er bedst for integrationstests.</li>
+        <li>Praktisk tip: seed test data i fixtures (se <code>conftest.py</code>) og ryd op efter test.</li>
+      </ul>
+    </div>
   </section>
 
   <section class="slide" id="ci">
-    <h2>Test automation & CI</h2>
-    <p>Praksis:</p>
+    <h2>CI & automation</h2>
+    <p>Hvordan køre tests automatisk i CI:</p>
     <ul>
-      <li>Unit tests: Kør lokalt og i pre-commit (hurtig feedback).</li>
-      <li>Integration tests: Kør i CI med containerized dependencies (se <code>.github/workflows/build-and-test.yml</code>).</li>
-      <li>E2E: Kør nightly eller som gating for store merges.</li>
-      <li>Contract tests: Kør i både consumer- og producer-repos; bryd ikke contracts uden versionsstrategi.</li>
+      <li>Split jobs: unit (hurtige) / integration (containers) / e2e (trimmed env)</li>
+      <li>Gem artefakter (logs, messages) ved fejl</li>
     </ul>
-    <pre><code># Eksempelkørsel i CI (Windows / PowerShell)
-python -m venv venv
-.\venv\Scripts\activate
-pip install -r requirements.txt
-pytest
-
-dotnet test ./eShopOnWeb-main/eShopOnWeb-main/tests/UnitTests/UnitTests.csproj
-</code></pre>
-    <div class="note">Tip: Del integration tests i hurtige vs. langsomme job; brug artefakter til at samle logs fra flakede tests.</div>
+    <div class="presenter"><strong>Speaker notes (2 min):</strong>
+      <ul>
+        <li>Vis linjer fra <code>.github/workflows/build-and-test.yml</code> hvor integration tests køres.</li>
+        <li>Tip: Kør langsomme e2e nattetimer eller som gating for release branches.</li>
+      </ul>
+    </div>
   </section>
 
   <section class="slide" id="opsummering">
-    <h2>Opsummering & Best Practices</h2>
+    <h2>Opsummering — korte takeaways</h2>
     <ul>
-      <li>Unit tests for correctness (hurtige).</li>
-      <li>Integration tests for contracts og transformations.</li>
-      <li>E2E for kritiske business flows.</li>
-      <li>Brug contract testing (Pact) for kompatibilitet.</li>
-      <li>Test messaging med ephemeral brokers (Docker / Testcontainers) og valider DLQ-behandling.</li>
+      <li>Skriv transformationslogik som rene funktioner — nemt at unit-teste</li>
+      <li>Brug ephemeral brokers for integrationstests</li>
+      <li>Automatiser i CI og del kontrakt-tests mellem teams</li>
     </ul>
-    <div class="key"><strong>Takeaway:</strong> Gør transformationslogik small, testbar og versioneret; automatiser integrationstests i CI for at fange regressions tidligt.</div>
+    <div class="presenter"><strong>Speaker notes (1 min):</strong>
+      <ul>
+        <li>Gentag mål og opfordr til spørgsmål.</li>
+        <li>Tilbyd at vise eksempelkode i repoet efter præsentation.</li>
+      </ul>
+    </div>
   </section>
 
   <section class="slide">
-    <h3>Vil du have PDF?</h3>
-    <p class="note">Jeg kan også generere en PDF fra denne HTML — jeg har tidligere oprettet helper scripts. Sig til hvis du vil have jeg konverterer og gemmer <code>EKSAMENSSPØRGSMÅL_Q3.pdf</code>. Alternativt kan du åbne denne fil i din browser og vælg <em>Print → Save as PDF</em> for hurtig eksport.</p>
+    <h3>Vil du have PDF eller slides som PPTX?</h3>
+    <p class="note">Jeg kan generere PDF fra denne HTML eller lave en Markdown→Reveal.js deck. Sig hvad du foretrækker.</p>
   </section>
 
-  <footer>Opdateret: 2025-12-03 — forbedret layout og uddybende noter</footer>
+  <footer>Opdateret: 2025-12-03 — klar til 10–15 min præsentation</footer>
 
 </body>
 </html>
