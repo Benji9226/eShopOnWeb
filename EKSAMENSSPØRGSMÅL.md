@@ -1,514 +1,454 @@
-# Eksamensspørgsmål - eShopOnWeb Projekt
+# Sikkerhed i Microservices - eShopOnWeb
 
-## Spørgsmål 2: Sikkerhed i Microservices og Systemintegration
-
-### 2a. Almindelige sikkerhedsudfordringer i Microservice-arkitektur
-
-#### 1. Autentifikation og Autorisering mellem Services
-
-**Udfordring:** Når services kommunikerer, skal hver service verificere identiteten af den kaldende service.
-
-**Løsning i projektet – JWT og mTLS:**
-- **JWT (JSON Web Tokens):** API Gateway validerer JWT-tokens fra klienter
-- **mTLS (Mutual TLS):** Gateway bruger klientcertifikater når det kalder downstream services
-
-Eksempel fra `ApiGateway.go`:
-```go
-// Gateway validerer JWT fra Authorization header
-func validateJWT(tokenString string) (*jwt.Claims, error) {
-    token, err := jwt.ParseWithClaims(tokenString, &jwt.Claims{}, ...)
-    // Hvis token er invalid → 401 Unauthorized
-}
-```
-
-Eksempel fra `.NET Web` (`src/Infrastructure/Authentication/TokenService.cs`):
-```csharp
-// Web service genererer JWT ved opstart
-var token = tokenService.GenerateToken();
-return new BearerTokenHandler(token);
-```
-
-**Fordele:**
-- JWT er stateless; ingen session DB nødvendig
-- mTLS sikrer at kun autoriserede services kan kommunikere
-- Certificater roteres automatisk ved deployment
+> **10-15 min fremlæggelse**
 
 ---
 
-#### 2. Secret Management
+## 📊 Agenda
 
-**Udfordring:** Private keys, databaseadgangskoder, og JWT secrets skal ikke være i versionskontrol.
-
-**Løsning – Docker Secrets Volume:**
-- `gen-secrets.sh` genererer secrets en gang ved opstart
-- Secrets gemmes i Docker volume `/secrets` (aldrig committed til git)
-- Services monterer volumet read-only
-
-```bash
-# Fra gen-secrets.sh
-if [[ ! -f "$SECRETS/jwt/secret.key" ]]; then
-  openssl rand -base64 32 > "$SECRETS/jwt/secret.key"
-fi
-
-# Per-service server certs (names må matche service navne)
-for svc in orders catalog; do
-  gen_server "$svc"
-done
-```
-
-Services læser fra filen:
-```csharp
-var secretKeyPath = "/secrets/jwt/secret.key";
-if (!File.Exists(secretKeyPath))
-{
-    throw new Exception($"Secret key not found at: {secretKeyPath}");
-}
-string secretKey = File.ReadAllText(secretKeyPath).Trim();
-services.AddSingleton(sp =>
-{
-    var logger = sp.GetRequiredService<ILogger<TokenService>>();
-    return new TokenService(secretKey, logger);
-});
-```
-
-**Fordele:**
-- Secrets roteres uden code changes
-- Ingen hardcoding af passwords
-- Read-only mount sikrer at secrets ikke modificeres af containers
+1. **Sikkerhedsudfordringer** i microservice-arkitektur
+2. **Løsninger** - Hvordan eShopOnWeb håndterer det
+3. **Messaging-sikkerhed** med RabbitMQ
+4. **Defense-in-depth** modellen
 
 ---
 
-#### 3. Service-to-Service Communication Security
+## 🔴 Slide 1: De store udfordringer
 
-**Udfordring:** Services skal kun acceptere requests fra autoriserede kilder.
+### Hvorfor er microservices sværere at sikre end monolitter?
 
-**Løsning – Client Certificates (mTLS):**
-```bash
-# gen-secrets.sh genererer client cert for Gateway
-gen_client gateway  
-# Output: /secrets/clients/gateway/client.{crt,key}
+```
+Monolith:                    Microservices:
+┌─────────────┐             ┌──────┐  ┌──────┐  ┌──────┐
+│ En app      │             │Svc A │→ │Svc B │→ │Svc C │
+│ En database │             └──────┘  └──────┘  └──────┘
+└─────────────┘                ↓        ↓        ↓
+                            Postgres  Postgres  RabbitMQ
 ```
 
-Gateway bruger certifikatet når det kalder andre services:
-```go
-// ApiGateway.go - mTLS client configuration
-tlsConfig := &tls.Config{
-    Certificates: []tls.Certificate{clientCert},
-    ClientCAs:    caPool,
-    VerifyPeerCertificate: verifyCert,
-}
-```
-
-Docker Compose konfiguration:
-```yaml
-catalog:
-  environment:
-    TLS_CERT: /secrets/services/catalog/server.crt
-    TLS_KEY: /secrets/services/catalog/server.key
-    TLS_CA: /secrets/ca/ca.crt
-  volumes:
-    - dev-secrets:/secrets:ro
-```
-
-**Fordele:**
-- Bilateral autentifikation (både klient og server verificeres)
-- Certificater udløber og tvinger rotation
-- Kan implementere certificate pinning i gateway
+**Nye trusler:**
+- ❌ Service-to-service autentifikation
+- ❌ Hemmeligheder fordelt på N services
+- ❌ Kommunikation over netværk (ikke i-memory)
+- ❌ Event-baseret messaging kan blive aflæst/manipuleret
 
 ---
 
-#### 4. Data i Transit (Encryption)
+## 🔐 Slide 2: Autentifikation mellem Services
 
-**Udfordring:** Data mellem services skal være krypteret.
+### Problem: Service A kalder Service B. Hvordan ved B at det er virkelig A?
 
-**Løsning:** HTTPS/TLS på alle interne forbindelser
-- Catalog Service: `https://catalog:8000`
-- Order Service: `https://orders:8001`
-- Basket Service: `https://basket:8000`
+I en monolith er det lettere - alt køres i samme proces. Men når services køres separat, skal der være en mekanisme til at verificere identiteten.
 
-**Network Segmentation:**
-```yaml
-networks:
-  eshop-on-web-net:
-    external: true
-```
+**Løsning i eShopOnWeb: JWT + mTLS**
 
-Alle services kører på samme Docker network, som er isoleret fra host.
+#### JWT (For API kald fra eksterne klienter)
 
-**Fordele:**
-- Kryptering af alle data i transit
-- Certificater valideres ved forbindelse
-- Diffie-Hellman key exchange sikrer forward secrecy
+JWT står for JSON Web Token. Det er som et pas, der indeholder brugerens identitet og rettigheder. Gateway genererer et JWT-token når brugeren logger ind, og alle requests sendes derefter med dette token.
 
----
+**Sådan virker det:**
+1. Bruger logger ind via Web-applikationen
+2. TokenService genererer et JWT-token med brugerens ID og permissions
+3. Alle requests fra browseren indeholder: `Authorization: Bearer <token>`
+4. Gateway verificerer tokenet før den kalder downstream services
+5. Hvis token er ugyldigt eller udløbet → 401 Unauthorized
 
-#### 5. API Rate Limiting & DDoS Protection
+**Fordele ved JWT:**
+- Stateless: Gateway behøver ikke at slå tokens op i en database
+- Self-contained: Alle oplysninger er i token'et selv
+- Kan expire: Token udløber efter fx 1 time, automatisk rotation
 
-**Udfordring:** En service kan blive overbelastet af mange requests.
+#### mTLS (For Service-to-Service kommunikation)
 
-**Løsning i ApiGateway:**
-Gateway kan implementere rate limiting før requests når downstream services:
-```go
-// Pseudo-code - kan implementeres
-type RateLimiter struct {
-    maxRequestsPerSecond int
-    bucket map[clientIP]requestCount
-}
+mTLS (Mutual TLS) er stærkere end JWT. Det betyder at BÅDE gateway og downstream service verificerer hinanden med digitale certifikater.
 
-func (rl *RateLimiter) checkLimit(clientIP string) bool {
-    if rl.bucket[clientIP] > rl.maxRequestsPerSecond {
-        return false  // Reject request
-    }
-}
-```
+**Sådan virker det:**
+1. `gen-secrets.sh` genererer TLS-certifikater for hver service
+2. Gateway har et klientcertifikat (bevis på at det er gateway)
+3. Catalog Service har et servercertifikat (bevis på at det er catalog)
+4. Når gateway kalder Catalog, udbytter de certifikater
+5. Begge parter verificerer at certifikatet er signeret af samme trusted CA
+
+**Fordele ved mTLS:**
+- Bilateral autentifikation (begge parter verificeres)
+- Certificater kan ikke forfalske uden adgang til private keys
+- Automatisk refresh når certifikater roteres
+
+✅ **Resultat:** En hacker kan ikke logge ind som gateway-service uden det rigtige certifikat
 
 ---
 
-#### 6. Logging & Audit Trail
+## 🔑 Slide 3: Secret Management
 
-**Udfordring:** Skal kunne spore hvad der skete og hvem der gjorde det.
+### Problem: Passwords og private keys skal være sikre
 
-**Løsning – Centraliseret Logging (Loki):**
-```yaml
-# Monitoring/docker-compose-grafana.yml
-loki:
-  image: grafana/loki
-  ports:
-    - "3100:3100"
-    
-promtail:
-  image: grafana/promtail
-  # Shipper container logs til Loki
+En meget almindelig fejl er at hardcode hemmeligheder i koden. Hvis nogen får adgang til git-repoen (eller en container image), kan de læse alle passwords.
 
-grafana:
-  ports:
-    - "3001:3001"
+**Løsning: Docker Secrets Volume**
+
+eShopOnWeb bruger en smart tilgang:
+1. `gen-secrets.sh` køres automatisk når containeren starter (første gang)
+2. Scriptet genererer alle hemmeligheder og gemmer dem i `/secrets` folderen
+3. Hemmeligheder monteres som read-only volumes i containers
+4. Services læser fra filer i stedet for miljøvariabler
+
+**Hemmeligheder der genereres:**
+- `jwt/secret.key` - Brugt til at signere JWT-tokens
+- `ca/ca.crt` og `ca/ca.key` - Root certificate authority
+- `services/catalog/server.crt` - Catalog servicens TLS certifikat
+- `clients/gateway/client.crt` - Gateway's klientcertifikat
+
+**Vigtige sikkerhedspunkter:**
+- ✅ Hemmeligheder genereres dynamisk, ikke committed til git
+- ✅ Read-only mount betyder services kan ikke skrive/modificere secrets
+- ✅ Docker volume betyder hemmeligheder kun eksisterer i memory under runtime
+- ✅ Når container stopper, forsvinder hemmeligheder (ny generation næste gang)
+
+**Real-world eksempel:**
+Hvis en udvikler ved en fejltagelse committer kode med password, er det ikke katastrofalt fordi det øjeblik container restartes, får det et nyt password fra secrets volumet.
+
+✅ **Resultat:** Secrets håndteres som infrastruktur (operatørens ansvar), ikke som kode (udviklers ansvar)
+
+---
+
+## 🔒 Slide 4: Kryptering i Transit
+
+### Problem: Data sendes mellem services over netværk
+
+Når data sendes over netværk (også hvis det er bare over Docker netværket), kan en attacker potentielt aflytter trafikken. Data kunne indeholde brugerinformation, ordredetaljer, eller andre sensitive data.
+
+**Løsning: HTTPS/TLS overalt**
+
+eShopOnWeb bruger TLS (Transport Layer Security) til ALL kommunikation mellem services. Det betyder at selv hvis nogen aflytter netværket, kan de kun se krypteret garbage.
+
+**Sådan virker det:**
+1. Alle service-to-service URLs bruger `https://` i stedet for `http://`
+2. TLS certifikater (fra gen-secrets.sh) bruges til at etablere krypteret forbindelser
+3. Data krypteres med AES-256 (meget stærk standard)
+4. Certifikater verificeres for at forhindre man-in-the-middle attacks
+
+**Konkrete eksempler i systemet:**
+- Web app til Gateway: `https://gateway:8090` (krypteret)
+- Gateway til Catalog: `https://catalog:8000` (mTLS + krypteret)
+- Gateway til Order: `https://orders:8001` (mTLS + krypteret)
+
+**Sikkerhedsniveauer:**
+- Web → Gateway: TLS + JWT (to lag)
+- Gateway → Services: TLS + mTLS (tre lag - encryption + certifikat verificering)
+
+✅ **Resultat:** Selv hvis en hacker kommer på Docker-netværket, kan de ikke læse ordredata fordi alt er krypteret
+
+---
+
+## 📝 Slide 5: Logging & Audit Trail
+
+### Problem: Hvordan sporer vi sikkerhedsbrud?
+
+Hvis systemet udsættes for et angreb, skal man kunne se hvad der skete. Uden logs kan man ikke bevise hvem der gjorde hvad eller når det skete.
+
+**Løsning: Centraliseret logging (Loki + Grafana)**
+
+I stedet for at skulle logge ind på hver container for at se logs, sender alle containers deres logs til en central Loki database. Grafana gør det muligt at søge og visualisere logs.
+
+**Arkitektur:**
+1. Hver container skriver til stdout/stderr
+2. Promtail (Docker agent) indsamler logs
+3. Logs sendes til Loki (log database)
+4. Grafana queries Loki og viser grafer/statistikker
+
+**Praktiske eksempler på hvad der logges:**
+- `API request | Method=POST | Path=/orders | StatusCode=200` - Succesfuld ordre
+- `API request | Method=GET | Path=/catalog | StatusCode=401` - Unauthorized attempt (mulig attack)
+- `RabbitMQ Event | OrderId=123 | UserId=456 | Timestamp=2025-12-03T10:00:00Z` - Event tracking
+
+**Hvordan operatører bruger det:**
+```
+Grafana søg: {container_name="web"} | status="401"
+Resultat: Alle failed auth attempts mod web-servicen
+→ Viser hvorfra requests kom fra (IP adresse)
+→ Kan blokere mistænkelig IP
 ```
 
-Eksempel på struktureret logging:
-```csharp
-logger.LogInformation(
-    "API request | Method={Method} | Path={Path} | ClientIP={ClientIP} | StatusCode={StatusCode}",
-    request.Method, request.Path, request.RemoteIP, response.StatusCode
-);
+**Compliance fordele:**
+- Audit trail: Kan bevise at følge GDPR, PCI-DSS regler
+- Forensics: Hvis der sker en sikkerhedsbrud, kan man gå tilbage og se hvad der skete
+- Alerting: Kan sætte alarms når der sker mistænkelig aktivitet (fx 100+ failed logins)
+
+✅ **Resultat:** Fuldstændig visibility i systemet for at detecte og respondera på sikkerhedshændelser
+
+---
+
+## 💬 Slide 6: RabbitMQ Sikkerhed - Problemet
+
+### Problem: Messages kan aflæses eller manipuleres
+
+RabbitMQ er en message broker - services sender ordrer, betalinger og events gennem den. Hvis messages ikke er sikre, kan en attacker:
+1. **Aflæse messages** - Se hvad brugere køber, deres kreditkortdata, etc.
+2. **Manipulere messages** - Ændre ordrebeløb fra 1000 DKK til 1 DKK
+3. **Duplikere messages** - Køre samme ordre flere gange
+4. **Slette messages** - Så ordren aldrig bliver behandlet
+
+**Konkret eksempel fra eShopOnWeb:**
+Når brugeren placerer en ordre, sender Order Service en `OrderCreatedEvent` message til RabbitMQ. Web Service lytter på denne message og opdaterer brugerens ordrehistorie. Hvis messages ikke er sikre:
+```
+Hacker: "Jeg aflytter RabbitMQ"
+         ↓
+         Ser: OrderId=123, UserId=456, Items=[Product1, Product2], Amount=1000 DKK
+         Manipulerer: Amount=1 DKK
+         Sender tilbage til RabbitMQ
+         ↓
+         Web Service modtager ændret ordre (uden at vide det)
+         ↓
+         Bruger får ordre til 1 DKK (fraud!)
 ```
 
-Operatører kan query logs i Grafana:
+### Løsninger: 3 lag sikkerhed
+
+---
+
+## 🛡️ Slide 7: RabbitMQ - Lag 1: Message Signing
+
+### Beskytte mod tampering
+
+**Idé:** Hvis vi signerer hver message, kan modtageren detektere hvis den blev manipuleret.
+
+**Sådan virker det:**
+1. Order Service har et hemmeligt nøgle (fx "my-super-secret-key")
+2. Før Order Service sender `OrderCreatedEvent` til RabbitMQ:
+   - Den konverterer order'en til JSON: `{"OrderId":123,"UserId":456,"Amount":1000}`
+   - Den beregner en HMAC-signature af JSON'en med den hemmelige nøgle
+   - Signature er som et fingerprint - hvis JSON ændres, bliver signature anderledes
+3. Order Service sender både JSON og signature til RabbitMQ
+4. Web Service modtager message:
+   - Den beregner selv HMAC-signature af den modtagne JSON
+   - Den sammenligner: Hvis `modtagen_signature == beregnet_signature` → OK
+   - Hvis de ikke matcher → Nogen har manipuleret message!
+
+**Sikkerhedseffekt:**
 ```
-{job="docker", container_name="web"} | "API request"
+Hacker prøver at ændre: OrderId=123 → OrderId=999
+         ↓
+         Han ved ikke den hemmelige nøgle
+         ↓
+         Han beregner forkert signature
+         ↓
+         Web Service detekterer mismatch
+         ↓
+         Message kasseres, sikkerhedsalarm
+```
+
+**Real-world analogi:** Det er som en forseglet brev. Hvis nogen åbner det og ændrer indholdet, er segling brækket og modtageren ser at det blev manipuleret.
+
+✅ **Resultat:** Detekterer hvis hacker ændrer ordrebeløb, bruger ID eller andet
+
+---
+
+## 👥 Slide 8: RabbitMQ - Lag 2: Access Control
+
+### Sikre at services kun læser deres egne queues
+
+**Problem:** Default RabbitMQ bruger (`guest`/`guest`) kan læse ALLE queues. Hvis Order Service bliver kompromitteret, har hackeren adgang til alle messages i alle queues - inkl. Stock Service's private messages.
+
+**Løsning: Per-service users med begrænsede permissions**
+
+**Development (for simpel lokal test):**
+- Default guest bruger - alle har adgang til alt
+- OK fordi det er lokalt og kun til udvikling
+
+**Production (rigtig sikkerhed):**
+1. Opret separate users for hver service:
+   - `orders_service` bruger
+   - `storage_service` bruger
+   - `web_service` bruger
+2. Giv hver bruger KUN permission til deres egne queues:
+   - `orders_service` kan KUN læse/skrive til queues der starter med `orders.*`
+   - `storage_service` kan KUN læse/skrive til queues der starter med `stock.*`
+   - `web_service` kan KUN læse `orders.events` (events fra order service)
+
+**Sikkerhedseffekt:**
+```
+Scenario: Order Service server får compromised af hacker
+         ↓
+         Hacker får Order Service's credentials
+         ↓
+         Hacker kan læse `orders.*` queues - men IKKE `stock.*`
+         ↓
+         Hacker kan ikke se eller manipulere Stock Service's data
+         ↓
+         Damage containeret! (Principle of Least Privilege)
+```
+
+**Real-world analogi:** Det er som at give forskellige medarbejdere forskellige nøgler. Receptionist har nøgle til reception, men ikke til vault. Hvis receptionist bliver kidnappet, kan de ikke få adgang til penge.
+
+✅ **Resultat:** Hvis én service bliver hacket, kan attacker ikke tilgå andre services' data
+
+---
+
+## 🔄 Slide 9: RabbitMQ - Lag 3: Encryption (TLS)
+
+### Sikre at messages ikke aflæses
+
+**Problem:** Selvom vi har signet messages og sat access control, kan trafikken til RabbitMQ stadig aflytters. AMQP (RabbitMQ's protokol) sender data uenkrypteret som standard.
+
+**Løsning: AMQPS (AMQP + TLS)**
+
+AMQPS er samme som AMQP, men med TLS encryption oven på. Det betyder:
+1. Forbindelsen til RabbitMQ bliver krypteret (AES-256)
+2. Messages kan ikke aflæses selvom nogen sniffer netværket
+3. TLS certifikater bruges til at verificere at det er den rigtige RabbitMQ broker
+
+**Development vs Production:**
+- **Development** (localhost): AMQP port 5672 OK (ikke real data)
+- **Production**: AMQPS port 5671 (encrypted)
+
+**Sådan bruges det:**
+1. RabbitMQ får et TLS certifikat (fra gen-secrets.sh)
+2. Services konfigureres til at forbinde via port 5671 i stedet for 5672
+3. Services verificerer RabbitMQ's certifikat før de sender data
+
+**Sikkerhedseffekt:**
+```
+Scenario: Hacker sidder på samme netværk og sniffer trafik
+         ↓
+         AMQP (port 5672): Hacker ser OrderId=123, Amount=1000 - DATA LÆST!
+         AMQPS (port 5671): Hacker ser krypteret noise - USELESS!
+```
+
+**Kombineret sikkerhed (Lag 1-3 sammen):**
+```
+Message journey:
+1. Order Service signerer message (Lag 1)
+2. Order Service binder med orders_service bruger (Lag 2)
+3. Order Service sender over AMQPS encrypted (Lag 3)
+         ↓
+         RabbitMQ modtager
+         ↓
+         Web Service modtager over AMQPS encrypted (Lag 3)
+         ↓
+         Web Service verificerer bruger (Lag 2)
+         ↓
+         Web Service verificerer signature (Lag 1)
+         ↓
+         Message er sikker på 3 niveauer!
+```
+
+✅ **Resultat:** Selvom hacker aflytter netværket, kan de ikke læse eller manipulere data
+
+---
+
+## ⚡ Slide 10: Dead Letter Queues - Håndter fejl
+
+### Problem: Hvis en message altid failer, bliver den retry'et infinit
+
+**Scenario:** Order Service sender `OrderCreatedEvent`. Web Service prøver at behandle det, men servicen er nede. Message requeues. Omtrent 10 minutter senere Web Service starter igen, men den samme message failer igen fordi der er en bug i koden. Uden Dead Letter Queue ville denne message blive retry'et infinit, og systemet ville blive overbelastet.
+
+**Løsning: Dead Letter Exchange (DLX)**
+
+DLX er som et "affalds-queue". Når en message fejler flere gange, sendes den automatisk til DLX i stedet for at blive retry'et infinit.
+
+**Sådan virker det:**
+1. Messages får en TTL (Time To Live) - fx 1 time
+2. Hvis message fejler, requeues den automatisk
+3. Hvis den fejler igen efter X antal gange (fx 3), sendes den til DLX
+4. Operator kan inspiciere messages i DLX:
+   - Debugge hvorfor de fejler
+   - Fikse rootcause
+   - Reprocesse messages når den er fikset
+
+**Praktisk eksempel fra eShopOnWeb:**
+```
+Scenario: En ordre har OrderId=null (bug i Order Service)
+Web Service prøver: ParseOrder(order) → FEJL: OrderId kan ikke være null
+         ↓
+         Message requeues (retry #1)
+         ↓
+         Web Service prøver igen → FEJL igen (bug ikke fikset)
+         ↓
+         Message requeues (retry #2)
+         ↓
+         Samme fejl igen (retry #3)
+         ↓
+         Maximum retries nået → Message sendes til orders.dlx queue
+         ↓
+         Operator ser i RabbitMQ dashboard: "1 message i orders.dlx"
+         ↓
+         Operator debugger, finder bug i Order Service
+         ↓
+         Operator fikser bug og deployer ny version
+         ↓
+         Operator reprocesser message fra DLX manually
+         ↓
+         Web Service behandler succesfuldt!
+```
+
+**Vigtige fordele:**
+- ✅ Forhindrer infinite retry loops (systemet korsfester)
+- ✅ Prevents starvation (andre messages kan behandles)
+- ✅ Gives visibility (operator ved at der er problemer)
+- ✅ Enables recovery (kan genprocesses når bug er fikset)
+
+✅ **Resultat:** Systemet stabiliseres selvom der er bug - poison messages går ikke tabt
+
+---
+
+## 🏗️ Slide 11: Defense-in-Depth Model
+
+### Alle sikkerhedslagene sammen
+
+| Layer | Trussel | Løsning | Eksempel |
+|-------|---------|---------|---------|
+| **Auth** | Unauthorized API access | JWT validation | Gateway checker bearer token |
+| **Service-to-Service** | Service spoofing | mTLS certificates | Catalog kræver client cert fra gateway |
+| **Secrets** | Hardcoded credentials | Volume mounts | `/secrets/jwt/secret.key` |
+| **Data Transit** | Eavesdropping | HTTPS/TLS | `https://catalog:8000` |
+| **Messages** | Tampering | HMAC signing | OrderEvent får signature |
+| **Queue Access** | Unauthorized reads | User permissions | `rabbitmqctl set_permissions` |
+| **Message Transit** | Interception | AMQPS (TLS) | RabbitMQ port 5671 |
+| **Durability** | Lost messages | Dead Letter Queue | DLX efter 3 retries |
+| **Audit** | No compliance trail | Loki logging | Grafana queries |
+
+---
+
+## 💡 Slide 12: Key Takeaways
+
+### Hvad skal I huske?
+
+✅ **1. Defense-in-depth** - Lag på lag af sikkerhed  
+✅ **2. Automate secrets** - Genereres, roteres, aldrig håndkoded  
+✅ **3. Mutual TLS** - Services verificerer hinanden  
+✅ **4. Message integrity** - Signing forhindrer tampering  
+✅ **5. Monitoring** - Loki + Grafana for incident detection  
+✅ **6. Graceful failures** - DLX for poison messages  
+
+**eShopOnWeb's sikkerhed er ikke magisk - det er arkitektur!**
+
+---
+
+## 📚 Slide 13: Vigtige filer
+
+### Hvor er det hele implementeret?
+
+| Fil | Formål |
+|-----|--------|
+| `gen-secrets.sh` | TLS cert + JWT secret generation |
+| `MicroServices/ApiGatewayMicroService/ApiGateway.go` | JWT validation, mTLS client config |
+| `src/Infrastructure/Authentication/TokenService.cs` | JWT generation og bearer handler |
+| `src/Infrastructure/RabbitMQ/RabbitMqService.cs` | Event publishing + DLX setup |
+| `docker-compose-adminPages.yml` | RabbitMQ configuration |
+| `Monitoring/docker-compose-grafana.yml` | Loki + Grafana logging |
+
+**Live demo:**
+```powershell
+# Start system
+docker network create eshop-on-web-net
+docker compose -f all-services.yml up --build
+
+# Besøg Grafana
+http://localhost:3001 (admin/admin)
 ```
 
 ---
 
-### 2b. Sikkerhed i Messaging-systemer (RabbitMQ)
+## Q&A
 
-#### 1. Message Tampering – Beskytte mod manipulation
-
-**Udfordring:** En ondsindet aktør kunne manipulere beskeder i RabbitMQ.
-
-**Løsning – Message Signing/Validation:**
-
-I eShopOnWeb valideres messages gennem OrderService og Web-listeners:
-
-```csharp
-// Fra Infrastructure/RabbitMQ/Services/RabbitMqService.cs
-public async Task PublishOrderCreatedEvent(Order order)
-{
-    var orderEvent = new OrderCreatedEvent
-    {
-        OrderId = order.Id,
-        UserId = order.UserId,
-        Items = order.OrderItems,
-        Timestamp = DateTime.UtcNow
-    };
-    
-    // Message sendes til RabbitMQ exchange
-    channel.BasicPublish(
-        exchange: "orders.topic",
-        routingKey: "order.created",
-        body: JsonSerializer.SerializeToUtf8Bytes(orderEvent)
-    );
-}
-```
-
-**Best Practice – Message Signing:**
-```csharp
-var messageJson = JsonSerializer.Serialize(orderEvent);
-using (var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(secretKey)))
-{
-    var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(messageJson));
-    var signature = Convert.ToBase64String(hash);
-    
-    // Send både message + signature
-    var signedMessage = new { message = orderEvent, signature = signature };
-    // Publish...
-}
-
-// Ved modtagelse: verify signature
-var computedSignature = ComputeHmacSignature(messageJson, secretKey);
-if (computedSignature != receivedSignature)
-{
-    throw new SecurityException("Message tampered!");
-}
-```
-
-**Fordele:**
-- Entydig verifikation af message integritet
-- Detekterer hvis hacker modificerer ordrebeløb, bruger ID, etc.
-- Kan kombineres med encryption for fuld sikkerhed
-
----
-
-#### 2. Unauthorized Message Access – Adgangskontrol til queues
-
-**Udfordring:** Enhver service skal ikke kunne læse fra alle queues.
-
-**Løsning – RabbitMQ-brugerrettigheder:**
-
-```yaml
-# docker-compose-adminPages.yml (dev)
-rabbitmq:
-  image: rabbitmq:3-management
-  ports:
-    - "5672:5672"      # AMQP port (uenkrypteret i dev)
-    - "15672:15672"    # Management UI
-  environment:
-    RABBITMQ_DEFAULT_USER: guest
-    RABBITMQ_DEFAULT_PASS: guest
-```
-
-**I produktion:**
-```bash
-# RabbitMQ CLI commands
-rabbitmqctl add_user orders_service <secure_password>
-rabbitmqctl add_user storage_service <secure_password>
-
-# Tildel permissions per service
-# orders_service kan kun læse/skrive til orders-queues
-rabbitmqctl set_permissions -p / orders_service "^orders\." "^orders\." "^orders\."
-
-# storage_service kan kun læse/skrive til stock-queues
-rabbitmqctl set_permissions -p / storage_service "^stock\." "^stock\." "^stock\."
-
-# Deaktiver default guest user
-rabbitmqctl delete_user guest
-```
-
-**Fordele:**
-- Least privilege principle: hver service får kun nødvendige permissions
-- Hvis en service bliver compromised, attacker kan ikke tilgå andre queues
-- Audit logs viser hvilken user sendte hver message
-
----
-
-#### 3. Message Delivery Assurance – Håndtere lost/duplicate messages
-
-**Udfordring:** RabbitMQ garanterer ikke message delivery; netværksfejl kan miste eller duplikere messages.
-
-**Løsning – Dead Letter Exchange (DLX) og Retry Logic:**
-
-```csharp
-// Infrastructure/RabbitMQ/Services/RabbitMqService.cs
-public async Task SubscribeToOrderEvents()
-{
-    // Definer queue med DLX
-    var queueArgs = new Dictionary<string, object>
-    {
-        { "x-dead-letter-exchange", "orders.dlx" },
-        { "x-message-ttl", 3600000 },  // 1 time TTL
-        { "x-max-length", 1000000 }    // Max 1M messages
-    };
-    
-    channel.QueueDeclare(
-        queue: "orders.events",
-        durable: true,                 // Queue overlever broker restart
-        exclusive: false,
-        autoDelete: false,
-        arguments: queueArgs
-    );
-    
-    // Consumer med acknowledgment
-    var consumer = new EventingBasicConsumer(channel);
-    consumer.Received += async (model, ea) =>
-    {
-        try
-        {
-            var message = Encoding.UTF8.GetString(ea.Body.ToArray());
-            await ProcessOrderEvent(message);
-            
-            // Kun ack hvis processing var succesfuld
-            channel.BasicAck(ea.DeliveryTag, false);
-            logger.LogInformation("Order event processed successfully");
-        }
-        catch (Exception ex)
-        {
-            logger.LogError($"Failed to process order: {ex.Message}");
-            
-            // Requeue message så det prøves igen
-            channel.BasicNack(ea.DeliveryTag, false, true);
-        }
-    };
-    
-    channel.BasicConsume(queue: "orders.events", autoAck: false, consumer: consumer);
-}
-```
-
-**Dead Letter Queue (DLQ) håndtering:**
-- Messages der failer 3 gange sendes til `orders.dlx`
-- Operator inspicerer via RabbitMQ management UI
-- Kan reprocesses manuelt eller logs for debugging
-
-**Fordele:**
-- Messages går ikke tabt ved fejl
-- Automatisk retry uden manual intervention
-- DLQ giver visibility til problematiske messages
-
----
-
-#### 4. Encryption af Messages i Transit
-
-**Udfordring:** RabbitMQ messages kan aflæses hvis ikke krypteret.
-
-**Løsning – TLS for RabbitMQ (AMQPS):**
-
-```yaml
-# docker-compose-adminPages.yml (produktion)
-rabbitmq:
-  image: rabbitmq:3-management
-  environment:
-    RABBITMQ_SSL_CERTFILE: /secrets/services/rabbitmq/server.crt
-    RABBITMQ_SSL_KEYFILE: /secrets/services/rabbitmq/server.key
-    RABBITMQ_SSL_CACERTFILE: /secrets/ca/ca.crt
-  ports:
-    - "5671:5671"    # AMQPS (encrypted)
-    - "15671:15671"  # Management HTTPS
-  volumes:
-    - dev-secrets:/secrets:ro
-```
-
-Services forbinder med TLS:
-```csharp
-var factory = new ConnectionFactory()
-{
-    HostName = "rabbitmq",
-    Port = 5671,
-    Ssl = new SslOption
-    {
-        Enabled = true,
-        ServerName = "rabbitmq",
-        CertPath = "/secrets/ca/ca.crt",
-        Certs = new[] { clientCert }
-    }
-};
-var connection = factory.CreateConnection();
-```
-
-**Fordele:**
-- AES-256 encryption af alle messages i transit
-- Certificater valideres (MITM-beskyttelse)
-- Samme certificate infrastructure som services bruger
-
----
-
-#### 5. Monitoring & Audit Trail for Messages
-
-**Udfordring:** Skal kunne spore hvilke messages der blev sendt/modtaget og af hvem.
-
-**Løsning – Struktureret Logging:**
-
-```csharp
-logger.LogInformation(
-    "RabbitMQ Event | Exchange={Exchange} | RoutingKey={RoutingKey} | Message={Message} | Timestamp={Timestamp}",
-    "orders.topic", "order.created", JsonSerializer.Serialize(orderEvent), DateTime.UtcNow
-);
-```
-
-**Grafana Loki query:**
-```
-{job="docker", container_name="web"} 
-| "RabbitMQ Event" 
-| RoutingKey="order.created"
-```
-
-**Fordele:**
-- Audit trail af alle events
-- Kan trace message flow gennem systemet
-- Detekterer anomal activity (f.eks. uventet høj message rate)
-
----
-
-#### 6. Poison Message Handling
-
-**Udfordring:** Hvis en message altid forårsager exception, bliver den ved med at blive retried infinit.
-
-**Løsning – Max Retry Count:**
-
-```csharp
-var queueArgs = new Dictionary<string, object>
-{
-    { "x-dead-letter-exchange", "orders.dlx" },
-    { "x-dead-letter-routing-key", "order.failed" },
-    { "x-max-length-bytes", 1000000000 }  // 1GB max
-};
-
-// Hvis message requeued > 3 gange, send til DLX
-int retryCount = 0;
-consumer.Received += async (model, ea) =>
-{
-    try
-    {
-        await ProcessOrderEvent(message);
-        channel.BasicAck(ea.DeliveryTag, false);
-    }
-    catch (Exception ex)
-    {
-        retryCount++;
-        if (retryCount >= 3)
-        {
-            // Send til dead letter queue
-            channel.BasicNack(ea.DeliveryTag, false, false);
-            logger.LogError($"Message poisoned after 3 retries: {message}");
-        }
-        else
-        {
-            channel.BasicNack(ea.DeliveryTag, false, true);  // Requeue
-        }
-    }
-};
-```
-
-**Fordele:**
-- Forhindrer infinite retry loops
-- Operator kan inspicere poison messages
-- Systemet stabiliseres selvom der er forkerte messages
-
----
-
-## Samlet Sikkerhedsmodel
-
-| Lag | Trussel | Løsning | Implementation |
-|-----|---------|---------|-----------------|
-| **Authentication** | Uautoriseret adgang | JWT + mTLS | ApiGateway validerer tokens |
-| **Authorization** | Uautoriseret service kald | Certificates | gen-secrets.sh mTLS certs |
-| **Secrets** | Kompromitterede credentials | Secret rotation | Docker volume + env vars |
-| **Data in transit** | Eavesdropping | TLS/HTTPS | HTTPS på alle endpoints |
-| **RabbitMQ** | Message tampering | HMAC signing | OrderCreatedEvent signeres |
-| **RabbitMQ** | Unauthorized access | User permissions | rabbitmqctl set_permissions |
-| **RabbitMQ** | Lost messages | DLX + retry | BasicAck/Nack implementering |
-| **RabbitMQ** | Eavesdropping | AMQPS | TLS for RabbitMQ |
-| **Logging** | No audit trail | Centraliseret logging | Loki + Grafana |
-| **Rate limiting** | DoS attacks | Request throttling | ApiGateway kan implementere |
-
----
-
-## Konklusion
-
-eShopOnWeb implementerer defense-in-depth strategi:
-1. **Autentifikation** på gateway-niveau (JWT)
-2. **Service-to-service sikkerhed** via mTLS
-3. **Secret management** uden versionskontrol
-4. **Message integritet** ved signing
-5. **Message durability** via DLX
-6. **Centraliseret observabilitet** for security incidents
-
-Denne kombination sikrer at systemet kan modstå både accidentelle fejl og bevidste angreb på microservice-niveau.
+### Spørgsmål?
