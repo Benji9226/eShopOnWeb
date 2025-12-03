@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8" />
+<title>Build & Deployment i Microservices – 10-15 min præsentation</title>
+<style>
+ body { font-family: Arial, sans-serif; line-height: 1.6; padding: 40px; max-width: 900px; margin: auto; }
+ h1, h2, h3 { margin-top: 40px; }
+ .section { margin-bottom: 50px; }
+ .example { background: #f4f4f4; padding: 15px; border-left: 5px solid #444; margin-top: 10px; }
+ ul { margin-left: 20px; }
+</style>
+</head>
+<body>
+<h1>Build- og Deployment-processer i Microservices & Systemintegration</h1>
+<p><strong>Varighed:</strong> 10–15 minutter<br>
+<strong>Teknologier brugt i projektet:</strong> RabbitMQ, GitHub Actions, Docker</p>
+
+<div class="section">
+<h2>1. Introduktion: Microservices vs. Monolit</h2>
+<p>Før vi ser på build og deployment, er det vigtigt at forstå forskellen mellem monolitisk arkitektur og microservices.</p>
+<ul>
+<li><strong>Monolit:</strong> Hele systemet bygges og deployes som én samlet applikation.</li>
+<li><strong>Microservices:</strong> Systemet består af mange små, selvstændige services med hver deres kodebase, build-proces og deployment.</li>
+</ul>
+<div class="example">
+<strong>Eksempel:</strong><br>
+En webshop kan opdeles i services som <em>Order Service</em>, <em>User Service</em>, <em>Payment Service</em> og <em>Inventory Service</em>, der alle deployes uafhængigt af hinanden.
+</div>
+</div>
+
+<div class="section">
+<h2>2. Build-processen i Microservices</h2>
+<p>I microservices bygger hver service sin egen pipeline. Dette gør udviklingen hurtigere og mere fleksibel.</p>
+<ul>
+<li>Kode pushes til GitHub.</li>
+<li>CI-pipeline kører tests og bygger artefaktet.</li>
+<li>Service pakkes som et <strong>Docker container image</strong>.</li>
+<li>Image pushes til container registry.</li>
+</ul>
+<div class="example">
+<strong>Eksempel fra projektet:</strong><br>
+GitHub Actions bygger automatisk Docker-images for hver service, når der pushes til main-branch.</div>
+</div>
+
+<div class="section">
+<h2>3. Deployment-processen i Microservices</h2>
+<p>Deployment håndteres normalt service for service, og nye versioner kan rulles ud uden at påvirke resten af systemet.</p>
+<p>Typiske elementer i en deployment-pipeline:</p>
+<ul>
+<li>Container registry → Deployment miljø</li>
+<li>Automatiseret deployment via scripts eller CI/CD</li>
+<li>Orchestration (fx Kubernetes – hvis anvendt)</li>
+</ul>
+<div class="example">
+<strong>Eksempel fra projektet:</strong><br>
+Docker containers startes og opdateres individuelt, så hver service kan deployes uden nedetid for resten af platformen.</div>
+</div>
+
+<div class="section">
+<h2>4. Hvordan adskiller det sig fra en Monolit?</h2>
+<ul>
+<li><strong>Monolit:</strong> Ét stort build → Ét stort deployment. Alt skal med hver gang.</li>
+<li><strong>Microservices:</strong> Mange små builds → Mange små deployments. Kun den ændrede service skal deployes.</li>
+</ul>
+<div class="example">
+<strong>Eks:</strong> Hvis du kun ændrer i Payment Service, skal du ikke genudrulle hele webshoppen – kun den service.
+</div>
+</div>
+
+<div class="section">
+<h2>5. Systemintegration i Microservices</h2>
+<p>Microservices skal ofte kommunikere med hinanden. Dette kan gøres på flere måder:</p>
+</div>
+
+<div class="section">
+<h3>5.1 Pipes and Filters</h3>
+<p>Pipes and Filters er et integrationsmønster hvor data sendes gennem en kæde af processer (filters). Hver filter udfører en lille opgave.</p>
+<ul>
+<li>Filters = små funktioner/services der transformerer data.</li>
+<li>Pipes = forbindelser mellem disse steps.</li>
+</ul>
+<div class="example">
+<strong>Eksempel:</strong><br>
+En ordre gennemløber flere steps: Validering → Betaling → Lageropdatering → Forsendelse.<br>
+Hver step håndteres af en separat service.</div>
+</div>
+
+<div class="section">
+<h3>5.2 Asynkron Messaging</h3>
+<p>Microservices kommunikerer ofte via asynkrone beskeder, så de ikke behøver at vente på hinanden.</p>
+<ul>
+<li>Services sender events til et message broker-system.</li>
+<li>Andre services lytter og reagerer på events.</li>
+<li>Gør systemet mere robust og skalerbart.</li>
+</ul>
+<div class="example">
+<strong>Eksempel fra projektet (RabbitMQ):</strong><br>
+Når Order Service opretter en ny ordre, sender den en besked til RabbitMQ. Inventory Service og Payment Service kan så lytte på denne besked og reagere uden direkte API-kald.</div>
+</div>
+
+<div class="section">
+<h2>6. Hvorfor bruge Asynkron Messaging?</h2>
+<ul>
+<li>Microservices bliver løsere koblet – de kender ikke hinandens detaljer.</li>
+<li>Der kan bygges workflows på tværs af services uden central koordination.</li>
+<li>Fejltolerance: Hvis en service er nede, ligger beskeden i køen, indtil den er oppe igen.</li>
+</ul>
+<div class="example">
+<strong>Eksempel:</strong><br>
+Hvis Payment Service er nede, går ordren ikke tabt. RabbitMQ gemmer beskeden, og service kan behandle den senere.</div>
+</div>
+
+<div class="section">
+<h2>7. Opsummering</h2>
+<ul>
+<li>Microservices bygges og deployes uafhængigt – typisk via CI/CD som GitHub Actions.</li>
+<li>Docker containers bruges som standard til packaging og deployment.</li>
+<li>Systemintegration sker typisk gennem:</li>
+<ul>
+ <li><strong>Pipes and Filters</strong> – sekventielle processer</li>
+ <li><strong>Asynkron messaging</strong> – RabbitMQ som message broker</li>
+</ul>
+<li>Resultatet er fleksible, skalerbare og robuste systemer.</li>
+</ul>
+</div>
+
+</body>
+</html>
