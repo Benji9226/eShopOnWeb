@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Spørgsmål 5 - Systemintegration og Message Channels</title>
+  <style>
+    :root{ --accent:#0b5fa8; --muted:#6b7280; --card:#fff }
+    *{box-sizing:border-box}
+    body{font-family:'Segoe UI',Tahoma,Arial;max-width:1000px;margin:24px auto;color:#111;background:#fff;padding:20px}
+    h1{color:var(--accent);border-bottom:4px solid var(--accent);padding-bottom:8px}
+    h2{color:#1e74b7;margin-top:20px}
+    h3{color:#2b6cb0}
+    p{margin:10px 0;line-height:1.5}
+    pre{background:#f7fbff;border-left:4px solid var(--accent);padding:12px;border-radius:6px;overflow:auto}
+    code{background:#f1f5f9;padding:2px 6px;border-radius:4px;font-family:Consolas,monospace}
+    ul{margin-left:18px}
+    .slide{page-break-after:always;margin:20px 0;padding:18px;background:var(--card);border-radius:8px;box-shadow:0 6px 18px rgba(20,30,60,0.05)}
+    .note{color:var(--muted);font-size:0.95em}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    td,th{padding:8px;border:1px solid #e6eef9}
+    th{background:#eef6ff;text-align:left}
+    footer{margin-top:12px;color:var(--muted);font-size:0.9em}
+    @media print{.slide{box-shadow:none;border-radius:0}}
+  </style>
+</head>
+<body>
+  <h1>Spørgsmål 5 — Systemintegration og Message Channels</h1>
+  <div class="note">Lang præsentation (10–15+ minutter) — hellere for lang end for kort</div>
+
+  <section class="slide" id="agenda">
+    <h2>Agenda & tidsfordeling</h2>
+    <ul>
+      <li><span class="note">1 min</span> — Introduktion til message channels</li>
+      <li><span class="note">3 min</span> — Typer af message channels (queues, topics, event streams)</li>
+      <li><span class="note">3 min</span> — Synkron vs asynkron kommunikation</li>
+      <li><span class="note">4 min</span> — Messaging i microservices (mønstre og praksis)</li>
+      <li><span class="note">4 min</span> — Eksempler fra repoet og implementeringstips</li>
+      <li><span class="note">2–3 min</span> — Opsummering & Q&A</li>
+    </ul>
+  </section>
+
+  <section class="slide" id="what">
+    <h2>Hvad er en Message Channel?</h2>
+    <p>En message channel er et abstraktionslag til at flytte beskeder mellem komponenter. Channels kan være point-to-point (queue), publish-subscribe (topic) eller streams (event log).</p>
+    <div class="note">Kan implementeres via brokers som RabbitMQ (queues, exchanges), Kafka (partitions, topics) eller enklere HTTP end-points.</div>
+  </section>
+
+  <section class="slide" id="types">
+    <h2>Typer af Message Channels</h2>
+    <table>
+      <tr><th>Channel type</th><th>Beskrivelse</th><th>Eksempler</th></tr>
+      <tr><td>Point-to-Point / Queue</td><td>En besked leveres til én consumer (work queue)</td><td>RabbitMQ queue, SQS</td></tr>
+      <tr><td>Publish-Subscribe / Topic</td><td>Producent publicerer til topic; mange consumers kan abonnere</td><td>RabbitMQ fanout/topic exchanges, MQTT topics</td></tr>
+      <tr><td>Event Stream / Log</td><td>Uendelig append-only log; consumers læser fra offset</td><td>Kafka topics, Kinesis</td></tr>
+      <tr><td>Request-Reply</td><td>Synkron-lignende mønster over messaging (correlation id)</td><td>RPC-over-message, temporary reply queue</td></tr>
+    </table>
+    <h3>Repo-eksempel: Exchange + topic i projektet</h3>
+    <p>I vores projekt deklareres en topic-exchange i Storage microservice:</p>
+    <pre><code>RabbitMQModule.forRoot({
+  exchanges: [{ name: 'catalog_item_stock.exchange', type: 'topic' }],
+  uri: process.env.RABBITMQ_URI || 'amqp://guest:guest@localhost:5672',
+});</code></pre>
+    <p>Dette betyder at services publicerer til exchange-navnet og bruger routing keys som f.eks. <code>catalog_item_stock.reserve</code> eller <code>catalog_item_stock.confirm</code>.</p>
+  </section>
+
+  <section class="slide" id="sync-vs-async">
+    <h2>Synkron vs Asynkron kommunikation</h2>
+    <h3>Synkron</h3>
+    <p>Producer venter på svar fra consumer (fx HTTP REST). Simpelt flow, nem fejlhåndtering, men tight coupling og lavere resilience.</p>
+
+    <h3>Asynkron</h3>
+    <p>Producer sender besked og fortsætter; consumer håndterer beskeden senere. Øger decoupling og resilience, men introducerer eventual consistency og kompleksitet (idempotency, ordering).</p>
+
+    <div class="note">Valg påvirker transaktionalitet, latency, fejlhåndtering og hvordan du tester integrationen.</div>
+  </section>
+
+  <section class="slide" id="implications">
+    <h2>Hvordan valget påvirker integration</h2>
+    <ul>
+      <li><strong>Latency og brugeroplevelse:</strong> synkron er hurtig og simpel for realtime svar; asynkron tillader baggrundsbehandling.</li>
+      <li><strong>Fejlhåndtering:</strong> asynkron kræver DLQ, retry-strategier og overvågning.</li>
+      <li><strong>Data consistency:</strong> asynkron → eventual consistency; design kompensation og tilstandsovervågning.</li>
+      <li><strong>Skalering:</strong> asynkron gør det muligt at skrue op for consumers uafhængigt af producenter.</li>
+    </ul>
+  </section>
+
+  <section class="slide" id="patterns">
+    <h2>Messaging-mønstre i Microservices</h2>
+    <ul>
+      <li><strong>Event-driven architecture:</strong> services emitter events for state changes</li>
+      <li><strong>Command messaging:</strong> sende en kommando til en ansvarlig service (ofte queue)</li>
+      <li><strong>Pipes & Filters:</strong> kæd små services som transformere via messages</li>
+      <li><strong>Saga:</strong> orkestrer langvarige transaktioner over flere services</li>
+      <li><strong>Request-Reply over messaging:</strong> brug correlation-id for at linke svar</li>
+    </ul>
+    <h3>Repo-eksempel: Consumer + RPC</h3>
+    <p>Storage-microservicen bruger både subscribe og RPC handlers (NestJS):</p>
+    <pre><code>@RabbitSubscribe({
+  exchange: 'catalog_item_stock.exchange',
+  routingKey: 'catalog_item_stock.restock',
+  queue: 'catalog_item_stock_restock_queue',
+})
+async handleRestock(msg: DefaultDTOItem[]) { /* ... */ }
+
+@RabbitRPC({
+  exchange: 'catalog_item_stock.exchange',
+  routingKey: 'catalog_item_stock.reserve',
+  queue: 'catalog_item_stock_reserve_rpc_queue',
+})
+async handleReserveRpc(msg: DefaultDTOItem[]) { /* ... */ }</code></pre>
+    <p>Forklaring: RPC bruges når caller forventer et svar (fx reservation check), mens subscribe er for events.</p>
+  </section>
+
+  <section class="slide" id="practical-repo">
+    <h2>Praktisk: hvordan vi kan bruge messaging i semesterprojektet</h2>
+    <ul>
+      <li>Brug events til at notify andre services (fx OrderPlaced -> InventoryService, BillingService)</li>
+      <li>Implementér en event bus med RabbitMQ for relay og routing (exchanges + bindings)</li>
+      <li>Brug Kafka til højt throughput/ordering-krav</li>
+    </ul>
+
+    <h3>Repo-referencer</h3>
+    <ul>
+      <li><code>src/Infrastructure/RabbitMQ/RabbitMqService.cs</code> — publisher + subscriber patterns</li>
+      <li><code>MicroServices/*/docker-compose.yml</code> — start messaging-broker lokalt</li>
+      <li><code>MicroServices/CatalogMicroService/tests/conftest.py</code> — fixtures til integrationstests</li>
+    </ul>
+    <h3>Repo-eksempel: Python publisher i Order Service</h3>
+    <pre><code># MicroServices/OrderMicroService/order-service/app/events.py
+async def publish(self, routing_key: str, payload: dict):
+    if self.connection is None or self.connection.is_closed:
+        await self.connect()
+    body = json.dumps(payload).encode()
+    message = Message(body, content_type='application/json', delivery_mode=2)
+    await self.exchange.publish(message, routing_key)
+</code></pre>
+
+    <p>I <code>services.py</code> oprettes events asynkront, så HTTP-API'en ikke blokeres:</p>
+    <pre><code># MicroServices/OrderMicroService/order-service/app/services.py
+asyncio.create_task(safe_publish('catalog_item_stock.confirm', confirm_payload))
+</code></pre>
+    <p>Delivery mode 2 + durable exchanges/queues sikrer persistence ved broker genstart.</p>
+  </section>
+
+  <section class="slide" id="examples">
+    <h2>Eksempel: publikation og subscription (pseudo)</h2>
+    <pre><code># Producer (C#)
+    <pre><code># Producer (C# / NestJS publish via AmqpConnection)
+await this.amqpConnection.publish(
+  'catalog_item_stock.exchange',
+  'catalog_item_stock.confirm',
+  payload
+);
+
+# Consumer (TypeScript - NestJS)
+@RabbitSubscribe({
+  exchange: 'catalog_item_stock.exchange',
+  routingKey: 'catalog_item_stock.confirm',
+  queue: 'catalog_item_stock_confirm_queue',
+})
+async handleConfirm(msg: DefaultDTOItem[]) { /* ... */ }
+</code></pre>
+
+    <p class="note">I projektet bruges <code>delivery_mode=2</code> og durable exchanges/queues for besked-persistence; services logger <code>requestId</code> ved modtagelse for tracing.</p>
+  </section>
+
+  <section class="slide" id="reliability">
+    <h2>Reliability: levering og garantier</h2>
+    <ul>
+      <li><strong>At most once</strong> — mulig data tab ved netværksfejl</li>
+      <li><strong>At least once</strong> — kan give duplikater; kræver idempotency</li>
+      <li><strong>Exactly once</strong> — svært og ofte dyrt; iblandt opnået via stream processing og commit-log</li>
+    </ul>
+
+    <p class="note">Vælg leveringsgaranti baseret på use-case — idempotency er ofte en god investering.</p>
+    <h3>Repo-eksempel: persistent messages</h3>
+    <p>Order-service sætter <code>delivery_mode=2</code> ved oprettelse af <code>Message(..., delivery_mode=2)</code> og exchange deklareres durable — dette giver persistence over broker genstart.</p>
+  </section>
+
+  <section class="slide" id="scaling">
+    <h2>Skalering & partitioning</h2>
+    <p>Til højt throughput brug partitioning (Kafka partitions) eller flere consumers i samme consumer-group. Vær opmærksom på ordering indenfor partitioner.</p>
+  </section>
+
+  <section class="slide" id="testing">
+    <h2>Testing af messaging flows</h2>
+    <ul>
+      <li>Unit test transformere og handlers isoleret</li>
+      <li>Integration test med ephemeral broker (Docker/Testcontainers)</li>
+      <li>Contract tests for events (Pact eller schema registry)</li>
+      <li>E2E: simuler producer -> broker -> consumer -> DB</li>
+    </ul>
+    <pre><code># pseudo pytest
+def test_event_flow(rabbitmq_container):
+    publish('orders.exchange','orders.placed', ORDER_JSON)
+    msg = consume('orders.processing', timeout=5)
+    assert msg['orderId'] == ORDER_JSON['orderId']
+</code></pre>
+    <h3>Repo-eksempel: Jest test mocker AmqpConnection</h3>
+    <pre><code>// MicroServices/storage-micro-service/src/__tests__/catalog-item-stock.service.spec.ts
+mockAmqp = { publish: jest.fn().mockResolvedValue(undefined) } as any;
+// ... execute service action ...
+expect(mockAmqp.publish).toHaveBeenCalledWith(
+  'catalog_item_stock.exchange',
+  'catalog_item_stock.reserve.success',
+  expectedResults
+);
+</code></pre>
+    <p class="note">Mønster: mock broker-client for hurtige unit-tests; brug ephemeral RabbitMQ i integrationstests for end-to-end verification.</p>
+  </section>
+
+  <section class="slide" id="operational">
+    <h2>Operational concerns</h2>
+    <ul>
+      <li>Monitoring: track lag (Kafka), queue depth (RabbitMQ)</li>
+      <li>Alerting: DLQ growth, consumer errors, retry storms</li>
+      <li>Schema evolution: backward/forward compatible changes</li>
+      <li>Security: authenticate/authorize producers and consumers</li>
+    </ul>
+  </section>
+
+  <section class="slide" id="implement-tips">
+    <h2>Implementerings-tips</h2>
+    <ul>
+      <li>Design events som facts, ikke commands (separation af ansvar)</li>
+      <li>Brug metadata (schema_version, event_id, correlation_id, timestamp)</li>
+      <li>Implementér idempotency keys for handlers</li>
+      <li>Hold beskeder små og parseable</li>
+    </ul>
+  </section>
+
+  <section class="slide" id="speaker-notes">
+    <h2>Speaker notes (10–15+ min)</h2>
+    <ol>
+      <li>Intro til channels, kort definition og hvorfor det matter (1 min)</li>
+      <li>Gennemgå channel-typer og vis tabel med eksempler (2–3 min)</li>
+      <li>Diskutér synkron vs asynkron — konsekvenser for integration (2–3 min)</li>
+      <li>Vis patterns: Pipes & Filters, Event-driven, Sagas (3–4 min)</li>
+      <li>Gennemgå repo-eksempel og test-tilgang (2–3 min)</li>
+      <li>Opsummering: nøglepunkter og anbefalinger (1–2 min)</li>
+    </ol>
+  </section>
+
+  <section class="slide" id="closing">
+    <h2>Opsummering & anbefalinger</h2>
+    <ul>
+      <li>Vælg kanaltype baseret på krav: latency, ordering, throughput</li>
+      <li>Foretræk asynkron messaging for løst koblede, skalérbare services</li>
+      <li>Invester i idempotency, schema management og observability</li>
+    </ul>
+    <footer>Opdateret: 2025-12-05 — klar til 10–15+ min præsentation</footer>
+  </section>
+</body>
+</html>

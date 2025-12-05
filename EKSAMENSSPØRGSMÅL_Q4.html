@@ -125,5 +125,85 @@ Hvis Payment Service er nede, går ordren ikke tabt. RabbitMQ gemmer beskeden, o
 </ul>
 </div>
 
+<h2>8. Eksempel: RabbitMQ i Order Service</h2>
+<p>Nedenfor ses et konkret eksempel på, hvordan din Order Service bruger RabbitMQ til at sende events asynkront. Dette viser tydeligt integrationen mellem microservices ved hjælp af messaging:</p>
+<pre><code># events.py
+async def publish(self, routing_key: str, payload: dict):
+    body = json.dumps(payload).encode()
+    message = Message(body, content_type="application/json", delivery_mode=2)
+    await self.exchange.publish(message, routing_key)
+
+# Brug i Order Service
+confirm_payload = [item.model_dump() for item in confirm_items]
+asyncio.create_task(safe_publish("catalog_item_stock.confirm", confirm_payload))
+</code></pre>
+<p>Dette betyder, at når en ordre bekræftes, sendes der et event til RabbitMQ, som andre services kan reagere på — fx Inventory Service eller Catalog Service.</p>
+  <section class="slide" id="deep-dive-build">
+    <h2>Dybere forklaring: Hvorfor Microservices kræver en anderledes build-proces</h2>
+    <p>I en monolitisk arkitektur bygges hele applikationen i ét artefakt. Hvis én linje kode ændres, bygges og deployes alt. Dette giver simple pipelines, men langsomme releases og større risiko ved fejl.</p>
+    <p>I microservices er der i stedet <strong>mange små, uafhængige build pipelines</strong>. Hver service kan release uden at påvirke andre — og det kræver:</p>
+    <ul>
+      <li>Isolerede build steps pr. service</li>
+      <li>Egne Docker-images</li>
+      <li>Automatiske tests pr. service</li>
+      <li>Versionering og tagging af images</li>
+      <li>CI som holder styr på, hvem der skal deployes hvornår</li>
+    </ul>
+  </section>
+
+  <section class="slide" id="deep-dive-deploy">
+    <h2>Dybere forklaring: Deployment af Microservices</h2>
+    <p>Deployment af microservices handler om at kunne <strong>rulle nye versioner ud uden at påvirke resten af systemet</strong>. Udfordringen er, at mange services skal kunne opdateres individuelt.</p>
+    <h3>Typiske krav til microservice-deployments</h3>
+    <ul>
+      <li>Tjenester skal kunne genstartes og skaleres uafhængigt</li>
+      <li>Der skal være health checks (ready/live checks)</li>
+      <li>Deploys skal være automatiserede</li>
+      <li>Rollback skal kunne ske hurtigt (nyttigt ved Canary/Blue-Green)</li>
+    </ul>
+    <p>Med Docker + GitHub Actions får man en pipeline, der:</p>
+    <ul>
+      <li>Bygger Docker image</li>
+      <li>Pusher til registry</li>
+      <li>Kører deploy scripts (f.eks. Docker Swarm, Compose, Kubernetes eller bare SSH deploy)</li>
+    </ul>
+  </section>
+
+  <section class="slide" id="deep-dive-integration">
+    <h2>Dybere forklaring: Hvorfor integration mellem Microservices er nødvendigt</h2>
+    <p>Microservices er små og uafhængige, men de kan sjældent stå alene. Derfor skal de integreres så de:</p>
+    <ul>
+      <li>Kan dele data</li>
+      <li>Reagere på events fra andre services</li>
+      <li>Synkronisere workflows</li>
+    </ul>
+
+    <p>Der findes to hovedmåder at integrere dem på:</p>
+    <ol>
+      <li><strong>Pipes and Filters (streaming / pipeline-baseret integration)</strong></li>
+      <li><strong>Asynkron messaging (event-baseret)</strong></li>
+    </ol>
+
+    <h3>Pipes and Filters — enkelt forklaret</h3>
+    <p>I dette mønster bliver data sendt igennem en kæde af små processors:</p>
+    <ul>
+      <li>Filter 1: Validering</li>
+      <li>Filter 2: Transformation</li>
+      <li>Filter 3: Persistens / output</li>
+    </ul>
+    <p>Det passer godt til ETL flows, logging pipelines og databehandling.</p>
+
+    <h3>Asynkron messaging — hvorfor det bruges så meget i microservices</h3>
+    <p>Asynkrone beskeder giver <strong>løskobling</strong>, hvilket betyder at services ikke skal vente på hinanden.</p>
+    <p>Når f.eks. <strong>OrderService</strong> opretter en ordre, sender den en event til RabbitMQ:</p>
+    <pre><code>{ "event": "order_created", "orderId": 123 }</code></pre>
+
+    <p>Så kan andre services vælge at lytte på eventet. Hvis InventoryService lytter, kan den automatisk justere lager:</p>
+    <ul>
+      <li>Order behøver ikke vide noget om Inventory</li>
+      <li>Begge services kan udvikles og deployes uafhængigt</li>
+    </ul>
+  </section>
+
 </body>
 </html>

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Spørgsmål 6 - Domæneopdeling og Messaging Patterns</title>
+  <style>
+    :root{ --accent:#0b5fa8; --muted:#6b7280; --card:#fff }
+    *{box-sizing:border-box}
+    body{font-family:'Segoe UI',Tahoma,Arial;max-width:1000px;margin:24px auto;color:#111;background:#fff;padding:20px}
+    h1{color:var(--accent);border-bottom:4px solid var(--accent);padding-bottom:8px}
+    h2{color:#1e74b7;margin-top:20px}
+    h3{color:#2b6cb0}
+    p{margin:10px 0;line-height:1.5}
+    pre{background:#f7fbff;border-left:4px solid var(--accent);padding:12px;border-radius:6px;overflow:auto}
+    code{background:#f1f5f9;padding:2px 6px;border-radius:4px;font-family:Consolas,monospace}
+    ul{margin-left:18px}
+    .slide{page-break-after:always;margin:20px 0;padding:18px;background:var(--card);border-radius:8px;box-shadow:0 6px 18px rgba(20,30,60,0.05)}
+    .note{color:var(--muted);font-size:0.95em}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    td,th{padding:8px;border:1px solid #e6eef9}
+    th{background:#eef6ff;text-align:left}
+    footer{margin-top:12px;color:var(--muted);font-size:0.9em}
+    @media print{.slide{box-shadow:none;border-radius:0}}
+  </style>
+</head>
+<body>
+  <h1>Spørgsmål 6 — Domæneopdeling og Messaging Patterns</h1>
+  <div class="note">Lang præsentation (10–15+ minutter). Fokus: hvordan identificere servicegrænser, migrationsteknikker og anvendelse af message routing i integration.</div>
+
+  <section class="slide" id="agenda">
+    <h2>Agenda & tidsfordeling</h2>
+    <ul>
+      <li><span class="note">1 min</span> — Introduktion: hvorfor opdele</li>
+      <li><span class="note">3 min</span> — Strategier: incremental migration, decomposition by layer, strangler fig</li>
+      <li><span class="note">4 min</span> — Hvordan identificere domæner / bounded contexts</li>
+      <li><span class="note">3 min</span> — Prioritering og risikostyring</li>
+      <li><span class="note">4 min</span> — Messaging patterns: Message Routing & praktisk anvendelse</li>
+      <li><span class="note">2–3 min</span> — Opsummering & anbefalinger
+    </ul>
+  </section>
+
+  <section class="slide" id="why">
+    <h2>Hvorfor opdele en monolit?</h2>
+    <ul>
+      <li>Skalerbarhed: mulighed for at skalere kritiske komponenter separat</li>
+      <li>Fleksibilitet: forskellige teams kan eje services uafhængigt</li>
+      <li>Udrulning: hurtigere, mindre risikofyldte deploys</li>
+      <li>Teknologivalg: hvert service kan bruge sin optimale tech stack</li>
+    </ul>
+    <div class="note">Men opdeling øger kompleksitet i drift, integration og data consistency — derfor planlægning er nødvendig.</div>
+  </section>
+
+  <section class="slide" id="strategies">
+    <h2>Strategier for migration og opdeling</h2>
+    <h3>Incremental migration / Strangler Fig</h3>
+    <p>Gradvis erstatning: læg ny funktionalitet i services, redirect trafik fra monolit til nye services, trinvise ekstraktioner.</p>
+
+    <h3>Decomposition by Layer</h3>
+    <p>Opdel efter tekniske lag (UI, API, business logic, data). Kan være en god start, men mindre effektiv end domain-driven decomposition for forretningsmodeller.</p>
+
+    <h3>Decomposition by Business Capability / Domain</h3>
+    <p>Find bounded contexts (Orders, Inventory, Billing). Dette er ofte den mest holdbare: høj kohæsion indenfor service, lav kobling mellem services.</p>
+  </section>
+
+  <section class="slide" id="identify">
+    <h2>Hvordan identificere og prioritere domæner</h2>
+    <ul>
+      <li>Analyser forretningskapabiliteter: hvilke funktioner ændres ofte?</li>
+      <li>Coupling vs Cohesion: find tætte kluster af klasser/tabeller/metoder med høj indbyrdes afhængighed</li>
+      <li>Operational requirements: hvilke komponenter kræver separat skalering eller isoleret sikkerhed?</li>
+      <li>Team boundaries: hvem ejer funktionaliteten? Reorganisér services efter teams for effektivt ejerskab</li>
+    </ul>
+
+    <h3>Konkrete trin (praktisk)</h3>
+    <ol>
+      <li>Log and measure: find hotspots (latency, deployment frequency, change-rate)</li>
+      <li>Identify candidate bounded contexts via domain events and data ownership</li>
+      <li>Prototype extraction of a read-only slice (thin anti-corruption layer)</li>
+      <li>Incrementally move write-paths once read-path is stable</li>
+    </ol>
+  </section>
+
+  <section class="slide" id="prioritize">
+    <h2>Prioritering og risikostyring</h2>
+    <p>Prioritér efter business value, risikominimering og lav teknisk gæld. Eksempler på høj-prioritet services:
+    </p>
+    <ul>
+      <li>Services med høj trafik eller store portioner af responstid</li>
+      <li>Forretningskritiske flows (checkout, payment)</li>
+      <li>Komplekse domæner med hyppige ændringer</li>
+    </ul>
+    <div class="note">Lav en plan for rollback, integrationstest og kontrakt-gates før hver ekstraktion.</div>
+  </section>
+
+  <section class="slide" id="messaging-patterns">
+    <h2>Messaging Patterns — Message Routing</h2>
+    <p>Message Routing sørger for at beskeder bliver leveret til relevante services uden tight coupling. Typiske routing-typer: topic routing (routing keys), header-based routing, content-based routing (message broker eller dedicated router).</p>
+
+    <h3>Praktisk: routing keys og exchanges</h3>
+    <p>Convention: <code>{domain}.{entity}.{action}</code>, fx <code>orders.created</code> eller <code>catalog_item_stock.reservation.expired</code>.</p>
+
+    <h3>Repo-eksempel: exchange + routing keys</h3>
+    <pre><code>// Storage microservice (NestJS)
+RabbitMQModule.forRoot({
+  exchanges: [{ name: 'catalog_item_stock.exchange', type: 'topic' }]
+});
+
+// Publisher
+await this.amqpConnection.publish('catalog_item_stock.exchange', 'catalog_item_stock.reserve.success', payload);
+
+// Consumer binding
+@RabbitSubscribe({ exchange: 'catalog_item_stock.exchange', routingKey: 'catalog_item_stock.confirm', queue: 'catalog_item_stock_confirm_queue' })
+async handleConfirm(msg) { /* ... */ }
+</code></pre>
+  </section>
+
+  <section class="slide" id="routing-benefits">
+    <h2>Hvorfor Message Routing hjælper ved opdeling</h2>
+    <ul>
+      <li>Decoupling: services kender ikke hinandens endpoints — kun events</li>
+      <li>Selective subscription: consumers vælger relevante routing keys</li>
+      <li>Evolution: nye services kan subscribes uden producer-ændringer</li>
+      <li>Operational: mulighed for retries, DLQ og traffic shaping ved broker</li>
+    </ul>
+  </section>
+
+  <section class="slide" id="integration">
+    <h2>Integration-tilgang i praksis (trinvise eksempler)</h2>
+    <ol>
+      <li>Extract read model: lav en service der læser fra monolitens DB (read-only) og publicerer events fra den nye service.</li>
+      <li>Introduce anti-corruption layer (ACL): adaptér monolitens formater til nye service-interfaces.</li>
+      <li>Move write-paths gradually: begynd med lav-risk funktioner, vær omhyggelig med contracts.</li>
+      <li>Use event-driven integration: producer events fra nye services og få monolit/andre services til at subscribes.</li>
+    </ol>
+
+    <h3>Repo-relateret eksempel</h3>
+    <p>I projektet kan Order Service publicere <code>catalog_item_stock.confirm</code> event (se <code>MicroServices/OrderMicroService/order-service/app/services.py</code>), og Storage Service lytter og udfører reservation/confirm logik (se <code>MicroServices/storage-micro-service/src/stock/catalog-item-stock.consumer.ts</code>).</p>
+  </section>
+
+  <section class="slide" id="governance">
+    <h2>Governance: contracts, schema registry, versioning</h2>
+    <ul>
+      <li>Brug schema version i events (fx <code>schema_version</code>)</li>
+      <li>Contract tests (Pact) som CI-gate mellem producer og consumer</li>
+      <li>Backward/forward compatibility regler</li>
+    </ul>
+  </section>
+
+  <section class="slide" id="speaker-notes">
+    <h2>Speaker notes (10–15+ min)</h2>
+    <ol>
+      <li>Introduktion: hvorfor dele en monolit (1 min)</li>
+      <li>Opsummer migration-strategier: Strangler, Decomposition by Layer, Domain-Driven (3 min)</li>
+      <li>Demonstrér identifikation og prioritering trin (3–4 min)</li>
+      <li>Messaging: Message Routing + eksempler fra repo (3–4 min)</li>
+      <li>Governance og afslutning (1–2 min)</li>
+    </ol>
+  </section>
+
+  <section class="slide" id="closing">
+    <h2>Opsummering & anbefalinger</h2>
+    <ul>
+      <li>Start small: extract read paths og build trust</li>
+      <li>Prioritér efter business value og risiko</li>
+      <li>Brug message routing for loose coupling og fleksibel integration</li>
+      <li>Investér i contracts, observability og retries/DLQ</li>
+    </ul>
+    <footer>Opdateret: 2025-12-05 — klar til 10–15+ min præsentation</footer>
+  </section>
+</body>
+</html>
