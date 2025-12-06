@@ -73,14 +73,46 @@
 <p class="note">Eksempel: Test transform_v1_to_v2 som unit; test publish → transform → consume som integration mod ephemeral RabbitMQ.</p>
 
 <hr />
-<h2>🔧 Slide 4: Implementationsmønstre i repoet (konkrete filer)</h2>
-<ul>
-    <li><code>MicroServices/CatalogMicroService/tests/conftest.py</code> — pytest fixtures til test-database og seeding</li>
-    <li><code>MicroServices/CatalogMicroService/tests/test_repository.py</code> — integrationstest mod test-DB</li>
-    <li><code>src/Infrastructure/RabbitMQ/RabbitMqService.cs</code> — publisering og DLX patterns</li>
-    <li><code>MicroServices/ApiGatewayMicroService/ApiGateway.go</code> — JWT/mTLS config (bruges i integration E2E)</li>
-    <li><code>.github/workflows/build-and-test.yml</code> — CI job flow</li>
-</ul>
+<h2>🔧 Slide 4: Implementationsmønstre & hvor i repoet</h2>
+<p>Kort gennemgang af konkrete mønstre i koden og hvor du finder dem — præsenteret som "problem → løsning → hvor i repoet".</p>
+
+<h3>1) Publisher / Subscriber (event-driven)</h3>
+<p>Problem: Flere services skal reagere på en ordre uden direkte HTTP-kald.</p>
+<p>Løsning: Publish events til en exchange; services subscribes via routing keys.</p>
+<p><strong>Hvor:</strong> <code>MicroServices/OrderMicroService/order-service/app/events.py</code> (publisher) og <code>MicroServices/storage-micro-service/src/stock/catalog-item-stock.consumer.ts</code> (consumer).</p>
+<pre><code># events.py (publisher)
+await self.exchange.publish(message, routing_key)
+
+// consumer (NestJS)
+@RabbitSubscribe({ exchange: 'catalog_item_stock.exchange', routingKey: 'catalog_item_stock.confirm', queue: '...'} )
+async handleConfirm(msg) { /* ... */ }
+</code></pre>
+
+<h3>2) RPC over messaging (request-reply)</h3>
+<p>Problem: Nogle kald kræver direkte svar (fx reservation check).</p>
+<p>Løsning: RPC pattern med temporary reply queues eller @RabbitRPC i NestJS.</p>
+<p><strong>Hvor:</strong> <code>MicroServices/storage-micro-service/src/stock/catalog-item-stock.consumer.ts</code> (se @RabbitRPC handlers).</p>
+
+<h3>3) Background jobs & cron publishing</h3>
+<p>Problem: Periodisk oprydning eller tidsbaserede events (fx udløbne reservationer).</p>
+<p>Løsning: Cron-job der opdaterer DB og publicerer batch-events.</p>
+<p><strong>Hvor:</strong> <code>MicroServices/storage-micro-service/src/stock/cron/reservation-cleanup-cron.service.ts</code></p>
+
+<h3>4) Test fixtures & integration patterns</h3>
+<p>Problem: Integrationstests har brug for isolerede databaser og brokers.</p>
+<p>Løsning: pytest fixtures / jest mocks + ephemeral RabbitMQ i Docker/Testcontainers.</p>
+<p><strong>Hvor:</strong> <code>MicroServices/CatalogMicroService/tests/conftest.py</code> og <code>MicroServices/storage-micro-service/src/__tests__/catalog-item-stock.service.spec.ts</code></p>
+<pre><code># jest test (mock AmqpConnection)
+mockAmqp = { publish: jest.fn().mockResolvedValue(undefined) };
+expect(mockAmqp.publish).toHaveBeenCalledWith('catalog_item_stock.exchange', 'catalog_item_stock.reserve.success', expectedResults);
+</code></pre>
+
+<h3>5) CI integration</h3>
+<p>Problem: Kørsel af unit + integration tests og bygning af images.</p>
+<p>Løsning: Separate CI jobs (unit / integration / e2e) i GitHub Actions.</p>
+<p><strong>Hvor:</strong> <code>.github/workflows/build-and-test.yml</code> — se job-opdeling og test-artefakter.</p>
+
+<div class="note">Tip: Når du præsenterer, peg hurtigt på ét problem → vis den løsning koden indeholder → nævn filplacering for hurtig opfølgning.</div>
 
 <hr />
 <h2>🔁 Slide 5: Hvad er Message Transformation?</h2>
